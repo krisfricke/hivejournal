@@ -21,6 +21,7 @@ PT_MM = 25.4 / 72.0
 MARGIN = 72.0          # the Word file's side margins, in points: the folio aligns to them
 FOLIO_BASE = 46.0      # folio baseline, points up from the foot of the page
 PICS = []; PICPOS = []; FOLIO_SLUG = ''; FOLIO_COLOR = '#228B22'; COMMENT = {}
+CORR = []   # [old, new] text corrections for the current entry, from _corrections.json (typos caught after the PDF was made)
 
 SERIF_HINTS = ('times', 'liberationserif', 'liberation serif', 'dejavuserif', 'palatino', 'georgia', 'garamond', 'minion', 'book antiqua', 'palladio',
                'century schoolbook', 'baskerville', 'cambria', 'caslon', 'bodoni', 'didot', 'antigoni')
@@ -96,6 +97,7 @@ DEHYPHENATE = False    # True only if Word's automatic hyphenation is on for the
 def clean(t):
     t = unlig(t)
     if SMARTQUOTES: t = smart(t)
+    for a_, b_ in CORR: t = t.replace(a_, b_)
     out = []
     for ch in t:
         if AUQUOTES and ch in AUQ: ch = AUQ[ch]
@@ -597,6 +599,8 @@ if __name__ == '__main__':
     site = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     cfg = json.load(open(os.path.join(site, '_config.json')))
     meta = json.load(open(os.path.join(site, '_entries_meta.json')))
+    cp_ = os.path.join(site, '_corrections.json')
+    corrections = json.load(open(cp_, encoding='utf-8')) if os.path.exists(cp_) else {}
     only = sys.argv[1:]
     for a in meta:
         if only and a['id'] not in only: continue
@@ -607,6 +611,7 @@ if __name__ == '__main__':
         FOLIO_SLUG = '%s · Vol. %s · Topic %s' % (cfg.get('folio_prefix', 'LJI'), a['vol'], a['topic'])
         FOLIO_COLOR = cfg.get('frame_color', '#228B22')
         COMMENT = {'lj': a.get('lj'), 'dw': a.get('dw')}
+        CORR = corrections.get(a['id'], [])
         out = os.path.join(site, 'pages', a['id'])
         n, mm = build_entry(pdf, out, a['title'], a.get('links', ()), os.path.join(site, '_src', a['src']))
         a['n'] = n; a['mm'] = [round(mm[0], 2), round(mm[1], 2)]

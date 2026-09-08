@@ -67,6 +67,16 @@ you want them to enlarge to. A picture whose file is no bigger than it already a
 enlarger at all (there would be nothing to grow into) — in this entry that is the troll, the vineyard, the
 red-sea coast and the Bundaberg mural; drop in larger originals if you want those to open.
 
+## Fixing a typo without re-exporting
+
+`_corrections.json` holds text corrections applied at build time, per entry:
+
+        {"s12-t0": [["for me, its about", "for me, it’s about"]]}
+
+Each pair is an exact phrase and its replacement; it is applied to the live text on the pages and to the text
+version. Use it for a typo caught after the PDF was exported - and fix the Word file too, so the next export
+does not need the patch.
+
 ## Links in the text
 
 The hyperlinks are read out of the `.docx` and laid onto the page text by phrase, so it does not matter whether
