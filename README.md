@@ -71,9 +71,9 @@ red-sea coast and the Bundaberg mural; drop in larger originals if you want thos
 
 `_corrections.json` holds text corrections applied at build time, per entry:
 
-        {"s12-t0": [["for me, its about", "for me, it’s about"]]}
+        {"s12-t0": [["for me, its", "for me, it’s"]]}
 
-Each pair is an exact phrase and its replacement; it is applied to the live text on the pages and to the text
+Each pair is an exact phrase and its replacement (keep it within one line of the page, as printed); it is applied to the live text on the pages and to the text
 version. Use it for a typo caught after the PDF was exported - and fix the Word file too, so the next export
 does not need the patch.
 
