@@ -40,8 +40,16 @@ ul.list li a.t:hover{text-decoration:underline}
 ul.list li .c{font-size:14px;color:#3a3a3a;margin-top:2px}
 .links li{font-size:14px;word-break:break-all}
 '''%cfg.get('frame_color','#228B22')
-def shell(title,body,canon,desc,up='../../'):
-    return ('<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+
+# A shared or searched-for link lands on this plain-text page (it is the crawlable, no-JavaScript front door),
+# but the pages themselves are what people should read - on a phone as much as anywhere. So, with JavaScript,
+# the page forwards straight to the reader unless the URL carries ?text (the reader's own "Text version"
+# link, and anyone who wants plain text on purpose). Without JavaScript, or with ?text, the text stays.
+def fwd(reader):
+    return ('<script>if(!/[?&]text(=|&|$)/.test(location.search))location.replace(%s)</script>'%json.dumps(reader)) if reader else ''
+
+def shell(title,body,canon,desc,up='../../',reader=None):
+    return ('<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+fwd(reader)+
         '<title>%s</title><meta name="description" content="%s"><link rel="canonical" href="%s"><link rel="icon" type="image/png" href="%sassets/bee/favicon.png"><style>%s</style></head><body><main><div class="card">%s</div></main></body></html>')%(E(title),E(desc),E(canon),up,CSS,body)
 
 def reading_order(a,tj):
@@ -143,7 +151,7 @@ for a in ordered:
     parts.append('<p class="note">This is the plain-text version, extracted from the laid-out pages for readers who use screen readers, text-only browsers, or prefer reflowable text. The typeset pages are in the <a href="%s">reader</a>; the same entry is on <a href="%s">LiveJournal</a>%s.</p>'%(reader,E(a.get('lj','#')),(' and <a href="%s">Dreamwidth</a>'%E(a['dw'])) if a.get('dw') else ''))
     desc='%s — LJ Idol Season %s, Topic %s, %s. By %s.'%(a['title'],a['vol'],a['topic'],when(a),AUTHOR)
     d=os.path.join(adir,a['id']); os.makedirs(d,exist_ok=True)
-    open(os.path.join(d,'index.html'),'w',encoding='utf-8').write(shell(a['title']+' — LJ Idol — '+AUTHOR,''.join(parts),BASE+'entry/'+a['id']+'/',desc))
+    open(os.path.join(d,'index.html'),'w',encoding='utf-8').write(shell(a['title']+' — LJ Idol — '+AUTHOR,''.join(parts),BASE+'entry/'+a['id']+'/',desc,reader=reader))
     urls.append(BASE+'entry/'+a['id']+'/')
 # hub
 seasons={}
