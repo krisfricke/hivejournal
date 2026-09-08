@@ -1,0 +1,90 @@
+[
+ {
+  "file": "pic1.png",
+  "media": "image1.png",
+  "w": 97,
+  "h": 100,
+  "hover": "",
+  "alt": ""
+ },
+ {
+  "file": "pic2.png",
+  "media": "image2.png",
+  "w": 746,
+  "h": 566,
+  "hover": "A vineyard near Santa Rosa related to Stacey's work",
+  "alt": "A vineyard near Santa Rosa related to Stacey's work"
+ },
+ {
+  "file": "pic3.jpg",
+  "media": "image3.jpeg",
+  "w": 927,
+  "h": 839,
+  "hover": "Camels on Mt Sinai",
+  "alt": "Camels on Mt Sinai"
+ },
+ {
+  "file": "pic4.jpg",
+  "media": "image4.jpeg",
+  "w": 1024,
+  "h": 776,
+  "hover": "The Egyptian coast seen from the Red Sea",
+  "alt": "The Egyptian coast seen from the Red Sea"
+ },
+ {
+  "file": "pic5.jpg",
+  "media": "image5.jpeg",
+  "w": 404,
+  "h": 499,
+  "hover": "A mural on a wall in Bundaberg",
+  "alt": "A mural on a wall in Bundaberg"
+ },
+ {
+  "file": "pic6.jpg",
+  "media": "image6.jpeg",
+  "w": 583,
+  "h": 639,
+  "hover": "Some of my beehives near Bundaberg",
+  "alt": "Some of my beehives near Bundaberg"
+ },
+ {
+  "file": "pic7.jpg",
+  "media": "image7.jpeg",
+  "w": 800,
+  "h": 655,
+  "hover": "yes I definitely needed a haircut",
+  "alt": "yes I definitely needed a haircut"
+ },
+ {
+  "file": "pic8.jpg",
+  "media": "image8.jpeg",
+  "w": 800,
+  "h": 605,
+  "hover": "Sakilikent Gorge",
+  "alt": "Sakilikent Gorge"
+ },
+ {
+  "file": "pic9.jpg",
+  "media": "image9.jpeg",
+  "w": 1023,
+  "h": 623,
+  "hover": "Lazy monkeys in Tanzania",
+  "alt": "Lazy monkeys in Tanzania"
+ },
+ {
+  "file": "pic10.jpg",
+  "media": "image10.jpeg",
+  "w": 800,
+  "h": 524,
+  "hover": "But pretend I'm in the forest",
+  "alt": "But pretend I'm in the forest"
+ },
+ {
+  "file": "pic11.jpg",
+  "media": "image11.jpeg",
+  "w": 1000,
+  "h": 750,
+  "hover": "Misu caught playing around",
+  "alt": "Misu caught playing around"
+ }
+]

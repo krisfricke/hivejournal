@@ -1,0 +1,12 @@
+# Build inputs, not part of the published site.
+# The Word drafts and the PDFs Word exports from them are what the build reads;
+# pages/ and entry/ are generated from them and are what actually gets served.
+_src/
+_pdf/
+
+# Scratch
+__pycache__/
+*.pyc
+.DS_Store
+~$*
+*.tmp

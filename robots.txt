@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://krisfricke.github.io/hivejournal/sitemap.xml

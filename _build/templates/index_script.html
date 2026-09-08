@@ -1,0 +1,680 @@
+<script>
+/* ---------- configuration ---------- */
+const BASE='__BASE__';                 /* where this will live on the web; used for share links */
+const HOME='__HOME__';                 /* west of here: the journal itself */
+const HOME_LABEL='__HOME_LABEL__';
+const UP_URL='__UP_URL__';             /* north of the first entry: this week's topic post (or the poll) */
+const UP_LABEL='__UP_LABEL__';
+const DW_TAG='__DW_TAG_BASE__';        /* + the tag: every entry with that tag, on Dreamwidth */
+const ARTS=__ARTS__;
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+/* ---------- helpers ---------- */
+const byId=id=>ARTS.find(a=>a.id===id);
+const esc=x=>(x||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const when=a=>(a.day?a.day+' ':'')+MONTHS[a.month-1]+' '+a.year;
+const season=a=>'Season '+a.vol;
+const key=a=>a.year*10000+a.month*100+(a.day||0);
+function sorted(list,order){ const s=list.slice().sort((x,y)=>key(x)-key(y)); return order==='new'?s.reverse():s; }
+function pageRange(a){ return a.pages[0]===a.pages[1]? String(a.pages[0]) : a.pages[0]+'\u2013'+a.pages[1]; }
+const LOCAL=(location.protocol==='file:');
+const TOUCH=matchMedia('(hover:none) and (pointer:coarse)').matches;
+const webDir=()=> LOCAL ? BASE : location.href.split('#')[0].replace(/[^\/]*$/,'');
+const textURL=a=>'entry/'+a.id+'/index.html';
+
+/* ---------- state ---------- */
+const ZSTEPS=[50,60,70,80,90,100,110,125,150,175,200];
+let ZOOM=(function(){ try{ const v=parseInt(localStorage.getItem('lji_zoom'),10); return ZSTEPS.indexOf(v)>=0?v:100; }catch(e){ return 100; } })();
+let ORDER=(function(){ try{ return localStorage.getItem('lji_order')==='old'?'old':'new'; }catch(e){ return 'new'; } })();
+
+
+function setZoom(p){ ZOOM=p; try{ localStorage.setItem('lji_zoom',String(p)); }catch(e){}
+  const el=document.getElementById('zval'); if(el) el.textContent=p+'%'; fitFrames(); }
+function zoomStep(d){ let i=ZSTEPS.indexOf(ZOOM); if(i<0) i=ZSTEPS.indexOf(100);
+  i=Math.max(0,Math.min(ZSTEPS.length-1,i+d)); setZoom(ZSTEPS[i]); }
+/* flipping the order: at the top of a list you stay at the top and the new order unrolls beneath you;
+   anywhere else you stay on what you were looking at while everything reshuffles around it */
+function anchorOf(li){
+  const l=laneEl(li); if(!l || l.scrollTop<40) return null;
+  const lr=l.getBoundingClientRect(), mid=lr.top+l.clientHeight/2; let best=null, bd=1e9;
+  l.querySelectorAll('.arc,.cov,.page').forEach(function(e){ if(!e.id) return; const r=e.getBoundingClientRect();
+    const d=Math.abs((r.top+r.bottom)/2-mid); if(d<bd){ bd=d; best=e; } });
+  return best ? {id:best.id, off:best.getBoundingClientRect().top-lr.top} : null;
+}
+function restoreAnchor(li,an){
+  const l=laneEl(li); if(!l) return;
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){        /* after fitFrames has sized the decks */
+    if(!an){ l.scrollTop=0; return; }
+    const e=document.getElementById(an.id); if(!e){ l.scrollTop=0; return; }
+    l.scrollTop += (e.getBoundingClientRect().top - l.getBoundingClientRect().top) - an.off;
+  }); });
+}
+function setOrder(o,persist){ ORDER=(o==='old')?'old':'new'; if(persist!==false){ try{ localStorage.setItem('lji_order',ORDER); }catch(e){} } orderLabel(); }
+function toggleOrder(){
+  const an0=anchorOf(0), an1=LANES[1].hits.length?anchorOf(1):null;
+  setOrder(ORDER==='new'?'old':'new'); build();
+  restoreAnchor(0,an0); if(LANES[1].hits.length) restoreAnchor(1,an1);
+}
+/* Back to top: close whatever is open and go to the head of the list, in the current order */
+function backToTop(){ closeTopic(); LANES[0].active=null; build(); location.hash='#/all'; requestAnimationFrame(function(){ laneEl(0).scrollTop=0; }); }
+function orderLabel(){ const b=document.getElementById('ordBtn'); if(b) b.innerHTML=(ORDER==='new')?'<span class="lg">Newest on top</span><span class="sm">Newest</span>':'<span class="lg">Oldest on top</span><span class="sm">Oldest</span>'; }
+
+/* ---------- page sizing: 100% = true printed size; only a too-narrow window shrinks it ---------- */
+const MM=96/25.4;
+function availWidth(el){
+  const row=el.parentElement, sheet=el.closest('.sheet'); let w=window.innerWidth;
+  if(sheet){ const cs=getComputedStyle(sheet); w=sheet.clientWidth-parseFloat(cs.paddingLeft||0)-parseFloat(cs.paddingRight||0); }
+  if(row){ const stacked=getComputedStyle(row).flexDirection==='column'; const rail=row.querySelector('.rail');
+    if(rail && !stacked){ w-=rail.getBoundingClientRect().width; w-=parseFloat(getComputedStyle(row).columnGap||getComputedStyle(row).gap||12)||12; } }
+  return Math.max(140,w);
+}
+function fitFrames(){
+  requestAnimationFrame(function(){
+    /* covers and cards: the same true-size rule as the pages, less room for the deck's offset */
+    document.querySelectorAll('.deck[data-wmm]').forEach(function(dk){
+      const W=parseFloat(dk.dataset.wmm)*MM, H=parseFloat(dk.dataset.hmm)*MM, off=(parseInt(dk.dataset.extra,10)||0)*4;
+      const k=Math.min(1,(availWidth(dk)-off)/W)*(ZOOM/100);
+      dk.style.width=(W*k)+'px'; dk.style.height=(H*k)+'px'; dk.style.margin='0 '+off+'px '+off+'px';
+      const ifr=dk.querySelector('iframe');
+      if(ifr){ ifr.style.width=W+'px'; ifr.style.height=H+'px'; ifr.style.transform='scale('+k+')'; }
+    });
+    document.querySelectorAll('.pframe.htmlpage').forEach(function(fr){
+      const ifr=fr.querySelector('iframe'); if(!ifr) return;
+      const W=parseFloat(fr.dataset.wmm)*MM, H=parseFloat(fr.dataset.hmm)*MM;
+      const k=Math.min(1, availWidth(fr)/W)*(ZOOM/100);
+      fr.style.width=(W*k)+'px'; fr.style.height=(H*k)+'px';
+      /* no transform on the iframe: the page draws itself at this size, so type stays sharp at any zoom */
+      ifr.style.width=(W*k)+'px'; ifr.style.height=(H*k)+'px'; ifr.style.transform='none'; ifr.dataset.k=k;
+      try{ ifr.contentWindow.postMessage({abj:'zoom',k:k},'*'); }catch(e){}
+    });
+  });
+}
+window.addEventListener('resize',fitFrames);
+/* a page that has just loaded says hello; answer with the size it should draw itself at (works on touch devices too) */
+window.addEventListener('message',function(e){
+  const m=e.data; if(!m||m.abj!=='hello'||!e.source) return;
+  document.querySelectorAll('iframe').forEach(function(f){
+    if(f.contentWindow===e.source && f.dataset.k){ try{ e.source.postMessage({abj:'zoom',k:parseFloat(f.dataset.k)},'*'); }catch(err){} } });
+});
+
+/* ---------- stacks: lane 0 is every article, lane 1 is a filtered set (a topic or a publication) ----------
+   Both render the same way: a stack of covers, each on its remaining pages, with the full rail beside it;
+   one card may be unfolded in place. */
+const LANES={
+  0:{sheet:'sheet', list:()=>ARTS, active:null, head:''},
+  1:{sheet:'topsheet', hits:[], list(){return this.hits;}, active:null, head:''}
+};
+function deck(a,extra){
+  let sh=''; for(let i=extra;i>=1;i--) sh+='<div class="sh" style="--i:'+i+'"></div>';
+  return '<div class="deck" data-wmm="'+a.mm[0]+'" data-hmm="'+a.mm[1]+'" data-extra="'+extra+'">'+sh+
+         /* the real page 1, same as the open view, so the words are text rather than pixels of text;
+            inert (pointer-events:none, out of the tab order) - it is a picture of the page until opened */
+         '<div class="top"><iframe loading="lazy" src="pages/'+a.id+'/1.html" title="'+esc(a.title)+' — first page" tabindex="-1" aria-hidden="true"></iframe></div></div>';
+}
+const q=v=>"'"+String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
+/* n=0: the stacked card (full details + Read); n=1: page 1 (full details); n>1: continuation (title + chips) */
+function railFor(a,n,li){
+  let r='<div class="pn">'+(n===0 ? a.n+' PAGE'+(a.n==1?'':'S') : 'PAGE '+n+' / '+a.n)+'</div>'+
+    '<div class="ti'+(n>1?' co':'')+'">'+(n>1?'↳ ':'')+esc(a.title)+'</div>';
+  if(n<=1){
+    r+='<div class="meta">LJ Idol '+esc(season(a))+' &middot; Topic '+a.topic+'<br>'+when(a)+'</div>';
+    if(n===0) r+='<button class="go" onclick="openCard('+q(a.id)+','+li+')">Read this entry</button>';
+  }
+  if(n<=1){
+    if(a.lj) r+='<a class="ro" href="'+esc(a.lj)+'" target="_blank" rel="noopener">Read on LiveJournal</a>';
+    if(a.dw) r+='<a class="ro" href="'+esc(a.dw)+'" target="_blank" rel="noopener">Read on Dreamwidth</a>';
+    r+='<button class="share" onclick="copyLink('+q(a.id)+')" title="Copy a link straight to this entry">Share this entry</button>'+
+       '<a class="txt" href="'+textURL(a)+'" title="Plain, reflowable text of this entry - for screen readers and small screens">Text version</a><div class="sep"></div>';
+  }
+  a.tags.forEach(t=>{ r+='<button class="tg" onclick="openTopic('+q(t)+')">'+esc(t)+'</button>'; });
+  return r;
+}
+function card(a,li){
+  const d=document.createElement('div'); d.className='arc'; d.id='art'+li+'-'+a.id;
+  d.innerHTML='<div class="page">'+deck(a,a.n-1)+'<div class="rail" onclick="event.stopPropagation()">'+railFor(a,0,li)+'</div></div>';
+  d.onclick=()=>openCard(a.id,li); return d;
+}
+function pageRow(a,n,li){
+  const mm=(a.pmm&&a.pmm[n-1])||a.mm;          /* pages can differ in height: the last one is cut to its content */
+  return '<div class="pframe htmlpage" data-wmm="'+mm[0]+'" data-hmm="'+mm[1]+'" style="aspect-ratio:'+mm[0]+'/'+mm[1]+'">'+
+    '<iframe loading="lazy" title="'+esc(a.title)+' page '+n+'" src="pages/'+a.id+'/'+n+'.html"></iframe></div><div class="rail">'+railFor(a,n,li)+'</div>';
+}
+function buildStack(li){ setTimeout(syncEdge,0);
+  const L=LANES[li], s=document.getElementById(L.sheet); s.innerHTML=L.head||'';
+  const order=sorted(L.list(),ORDER);
+  if(L.active===null){ order.forEach(a=>s.appendChild(card(a,li))); fitFrames(); return; }
+  const act=byId(L.active), at=order.findIndex(a=>a.id===L.active);
+  order.slice(0,at).forEach(a=>s.appendChild(card(a,li)));
+  const c=document.createElement('div'); c.className='cov'; c.id='cover'+li;
+  const topmost=(at===0 && li===0);
+  if(topmost) c.innerHTML='<div class="north"><button onclick="goUp()"><span class="ar">▲</span><span class="l">'+esc(UP_LABEL)+'</span><span class="t">on Dreamwidth</span><span class="more">'+(TOUCH?'or swipe up from the top':'or keep scrolling up from the top')+'</span></button></div>';
+  else c.innerHTML='';
+  c.innerHTML+='<div class="hint">'+(topmost?'':'▲ the other entries · ')+'click the sky to close this entry</div>'+
+    '<div class="page" id="p'+li+'-1">'+pageRow(act,1,li)+'</div>'+(act.n>1?'<div class="hint">▼ scroll down to read on</div>':'');
+  s.appendChild(c);
+  for(let n=2;n<=act.n;n++){ const d=document.createElement('div'); d.className='page'; d.id='p'+li+'-'+n; d.innerHTML=pageRow(act,n,li); s.appendChild(d); }
+  const nx=order[at+1], e=document.createElement('div'); e.className='next';
+  e.innerHTML=nx ? '<button onclick="nextArticle('+li+')"><span class="ar">▼</span><span class="l">Next entry</span><span class="t">'+esc(nx.title)+'</span></button>'
+                 : (li===0 ? '<button onclick="goHome()"><span class="ar">▼</span><span class="l">On to the journal</span><span class="t">'+esc(HOME_LABEL)+'</span><span class="more">'+(TOUCH?'or swipe up once more':'or keep scrolling down')+'</span></button>'
+                           : '<button onclick="closeArticle('+li+')"><span class="ar">▲</span><span class="l">Back to the list</span><span class="t">that was the last one in this order</span></button>');
+  s.appendChild(e);
+  order.slice(at+1).forEach(a=>s.appendChild(card(a,li)));
+  fitFrames();
+}
+function build(){
+  orderLabel();
+  const L=LANES[0];
+  document.body.classList.toggle('reading',L.active!==null);
+  const cur=byId(L.active)||sorted(ARTS,'new')[0];
+  if(L.active===null){ document.getElementById('issLabel').textContent=ARTS.length+(ARTS.length===1?' entry':' entries'); document.title='Kris Fricke — LJ Idol'; }
+  else { document.getElementById('issLabel').textContent=season(cur)+' · Topic '+cur.topic; document.title=cur.title+' — LJ Idol — Kris Fricke'; }
+  /* the top-bar "read on" links follow whichever entry is open (or the newest) */
+  const lb=document.getElementById('ljBtn'), db=document.getElementById('dwBtn');
+  if(lb){ lb.href=cur.lj||'#'; lb.style.display=cur.lj?'':'none'; }
+  if(db){ db.href=cur.dw||'#'; db.style.display=cur.dw?'':'none'; }
+  buildStack(0);
+  if(LANES[1].hits.length) buildStack(1);
+}
+const laneEl=li=>document.getElementById(li?'lane1':'lane0');
+function scrollCover(li){ const e=document.getElementById('cover'+(li||0)); if(e) e.scrollIntoView(); }
+function setActive(id,li){ li=li||0; const L=LANES[li];
+  if(id===L.active){ scrollCover(li); return; }
+  L.active=id; buildStack(li); if(li===0) build();
+  if(li===0) location.hash='#/read/'+id;
+  requestAnimationFrame(()=>scrollCover(li)); }
+/* open: the pages under the cover shoot downward, then the article unfolds in their place */
+let OPENING=false;
+function openCard(id,li){ li=li||0;
+  if(OPENING) return; const el=document.getElementById('art'+li+'-'+id);
+  if(!el || byId(id).n<2){ setActive(id,li); return; }
+  OPENING=true; el.classList.add('opening');
+  setTimeout(function(){ OPENING=false; setActive(id,li); },420);
+}
+function restack(li,fromId,focusId){
+  const L=LANES[li]; L.active=null; buildStack(li); if(li===0){ build(); location.hash=LANES[1].hits.length&&li===1?location.hash:'#/all'; }
+  const el=document.getElementById('art'+li+'-'+fromId), tgt=document.getElementById('art'+li+'-'+focusId);
+  if(el) el.classList.add('landing');
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){      /* after fitFrames has sized the decks */
+    if(tgt) tgt.scrollIntoView({block:'center'});
+    requestAnimationFrame(function(){ if(el) el.classList.remove('landing'); });
+  }); });
+}
+/* close (click the sky around an open article): back to the stack, its pages shuffling back under the cover */
+function closeArticle(li){ li=li||0; const L=LANES[li]; if(L.active===null) return; restack(li,L.active,L.active); }
+/* next: restack this one and centre the next card, still stacked */
+function nextArticle(li){ li=li||0; const L=LANES[li]; const order=sorted(L.list(),ORDER), at=order.findIndex(a=>a.id===L.active), nx=order[at+1];
+  if(!nx){ if(li===0) goHome(); else closeArticle(li); return; } restack(li,L.active,nx.id); }
+/* leaving: east/south to the journal, north to the topic post */
+function goHome(){ document.body.classList.add('leaving'); setTimeout(function(){ location.href=HOME; },120); }
+function goUp(){ document.body.classList.add('leaving'); setTimeout(function(){ location.href=UP_URL; },120); }
+function gotoCover(){ closeTopic(); const L=LANES[0];
+  if(L.active===null){ setActive(sorted(ARTS,'new')[0].id,0); return; }
+  const e=document.getElementById('cover0'); if(e) e.scrollIntoView({behavior:'smooth'}); }
+function gotoArchive(){ backToTop(); }
+function jumpTo(id,p){ closeTopic(); if(LANES[0].active!==id){ LANES[0].active=id; build(); }
+  setTimeout(()=>{const e=document.getElementById('p0-'+(p<=1?1:p)); if(e)e.scrollIntoView({behavior:'smooth'});},260); }
+[0,1].forEach(function(li){
+  const l=laneEl(li);
+  l.addEventListener('click',function(e){
+    if(LANES[li].active===null) return;
+    if(e.target.closest('.pframe,.rail,.arc,.next,.tophead,button,a,input,img,.hint,.cap,#picz,#picscrim')) return;   /* only the empty sky closes */
+    closeArticle(li);
+  });
+  /* touch: ordinary panning stops at the ends. A swipe that BEGINS at an edge, and travels at least a
+     third of the screen or moves briskly, goes on - down past the last entry to the journal, up from the
+     top of lane 0 to the topic post; in the middle of the list a flick at the end opens the next entry. */
+  let y0=0,t0=0,atEnd=false,atTop=false;
+  l.addEventListener('touchstart',function(e){ const t=e.touches[0]; y0=t.clientY; t0=Date.now();
+    atEnd=(l.scrollTop+l.clientHeight>=l.scrollHeight-24); atTop=(l.scrollTop<=2); },{passive:true});
+  l.addEventListener('touchend',function(e){
+    const t=e.changedTouches[0], dy=y0-t.clientY, dt=Math.max(1,Date.now()-t0), v=Math.abs(dy)/dt, far=Math.abs(dy)>Math.min(260,innerHeight/3);
+    if(atEnd && dy>60 && (far||v>0.9)){ if(LANES[li].active!==null) nextArticle(li); else if(li===0) goHome(); return; }
+    if(atTop && li===0 && dy<-60 && (far||v>0.9)) goUp(); },{passive:true});
+  /* mouse wheel / trackpad, lane 0 only. Three states at each edge:
+       arriving  - a scroll that reaches the edge just stops there, with a small bounce; nothing more
+       resting   - once the lane has been still at the edge for a moment, wheel movement past it
+                   starts to count: the sheet gives a little and a cue fills in
+       through   - enough of it (about a screen's worth, or two firm seconds) and you go on
+     A small nudge is never enough; letting go lets the pull settle back. */
+  if(li===0){
+    const sheet=document.getElementById('sheet'), cueT=document.getElementById('pullTop'), cueE=document.getElementById('pullEnd');
+    cueT.querySelector('.lbl').textContent=UP_LABEL; cueE.querySelector('.lbl').textContent=HOME_LABEL;
+    const NEED=520;                                  /* px of wheel travel past the edge that goes through */
+    let restAt=0, lastTop=l.scrollTop, pull=0, dir=0, decay=null, went=false;
+    function edge(){ const top=l.scrollTop<=0, end=l.scrollTop+l.clientHeight>=l.scrollHeight-2; return top?-1:end?1:0; }
+    function show(p){ const cue=dir<0?cueT:cueE, other=dir<0?cueE:cueT; other.classList.remove('on','ready');
+      const f=Math.min(1,p/NEED); cue.classList.toggle('on',p>24); cue.classList.toggle('ready',f>=1); cue.querySelector('.bar i').style.width=(f*100).toFixed(0)+'%';
+      sheet.classList.add('pulling'); sheet.style.transform='translateY('+(-dir*Math.min(72,Math.sqrt(p)*3.2)).toFixed(1)+'px)'; }
+    function release(){ clearInterval(decay); decay=null; pull=0; sheet.classList.remove('pulling'); sheet.style.transform='';
+      cueT.classList.remove('on','ready'); cueE.classList.remove('on','ready'); }
+    l.addEventListener('scroll',function(){
+      const now=performance.now(), was=lastTop, cur=l.scrollTop; lastTop=cur; restAt=now;
+      if(cur<=0 && was>0){ sheet.classList.remove('bounce-top'); void sheet.offsetWidth; sheet.classList.add('bounce-top'); }   /* arriving at the top */
+      if(cur+l.clientHeight>=l.scrollHeight-2 && was+l.clientHeight<l.scrollHeight-2){ sheet.classList.remove('bounce-end'); void sheet.offsetWidth; sheet.classList.add('bounce-end'); if(window.skyBalloon) skyBalloon(); }
+      if(pull) release();
+    },{passive:true});
+    l.addEventListener('wheel',function(e){
+      if(went) return;
+      const now=performance.now(), at=edge(), d=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?l.clientHeight:1);
+      const wantDir=d<0?-1:d>0?1:0;
+      if(!at || wantDir!==at){ if(pull) release(); return; }          /* not at an edge, or moving back into the page */
+      if(now-restAt<450){ return; }                                    /* still arriving: the bounce is the answer */
+      if(dir!==at){ dir=at; pull=0; }
+      pull+=Math.abs(d); show(pull);
+      clearInterval(decay); decay=setInterval(function(){ pull-=NEED*0.09; if(pull<=0){ release(); return; } show(pull); },90);   /* let go and it settles back */
+      if(pull>=NEED){ went=true; clearInterval(decay); setTimeout(function(){ went=false; release(); },3000); if(dir<0) goUp(); else goHome(); }
+    },{passive:true});
+  }
+});
+
+/* ---------- share & cite ---------- */
+function copyLink(id){
+  const a=byId(id); const u=webDir()+'entry/'+id+'/';
+  const note=LOCAL?'\n\nNote: you are reading this from a folder, so the link is not live until the site is published.':'';
+  if(!navigator.clipboard){ prompt('Copy this link:'+note,u); return; }
+  navigator.clipboard.writeText(u).then(
+    ()=>alert('Link to “'+a.title+'” copied.\n\n'+u+note),
+    ()=>prompt('Copy this link:'+note,u));
+}
+/* ---------- side lane: the same stack, filtered ---------- */
+function lane(title,sub,hits,extra){
+  const L=LANES[1]; L.hits=hits; L.active=null;
+  L.head='<div class="tophead"><h2>'+esc(title)+'</h2><div class="sub">'+sub+'</div>'+
+    '<button class="back" onclick="closeTopic()">‹ back to all entries</button>'+(extra||'')+'</div>'+(hits.length?'':'<div class="empty">Nothing here yet.</div>');
+  buildStack(1);
+  laneEl(1).scrollTop=0; setLane(1);
+}
+function openTopic(tag){ const hits=ARTS.filter(a=>a.tags.some(t=>t.toLowerCase()===tag.toLowerCase()));
+  const dw=DW_TAG ? '<a class="dwtag" href="'+esc(DW_TAG+encodeURIComponent(tag.toLowerCase()))+'" target="_blank" rel="noopener">every entry tagged “'+esc(tag)+'” on Dreamwidth ↗</a>' : '';
+  lane(tag,hits.length+' entr'+(hits.length==1?'y':'ies')+' tagged '+esc(tag)+' here',hits,dw); location.hash='#/topic/'+encodeURIComponent(tag.toLowerCase()); }
+function openSeason(v){ v=parseInt(v,10); const hits=ARTS.filter(a=>a.vol===v);
+  lane('Season '+v,hits.length+' entr'+(hits.length==1?'y':'ies'),hits); location.hash='#/season/'+v; }
+function setLane(pos){ const t=document.getElementById('track');
+  if(pos===-1){ t.classList.remove('right'); t.classList.add('left');
+    document.querySelector('.gate').classList.add('leaving');
+    setTimeout(function(){ location.href=HOME; },780); return; }
+  t.classList.toggle('right',pos===1); t.classList.toggle('left',pos===-1);
+  document.body.classList.toggle('inlane',pos===1); syncEdge(); }
+function closeTopic(){ setLane(0); }
+/* which edge tabs apply right now: "Stacked" whenever an article is open in the lane on view */
+function syncEdge(){ const li=document.body.classList.contains('inlane')?1:0;
+  document.body.classList.toggle('hasopen',LANES[li].active!==null); }
+function toStack(){ const li=document.body.classList.contains('inlane')?1:0;
+  if(LANES[li].active!==null) closeArticle(li); else backToTop(); }
+
+/* ---------- browse panel ---------- */
+var BMODE='topic';
+function index(mode){
+  var m={};
+  ARTS.forEach(function(a){ (mode==='season'?[season(a)]:a.tags).forEach(function(t){ t=String(t).trim(); if(!t) return;
+    var k=t.toLowerCase(); if(!m[k]) m[k]={name:t,n:0}; m[k].n++; }); });
+  return Object.keys(m).map(k=>m[k]).sort((x,y)=>x.name.toLowerCase().localeCompare(y.name.toLowerCase()));
+}
+function openBrowse(mode){ BMODE=mode;
+  document.getElementById('btitle').textContent = mode==='season'?'By season':'By tag';
+  var fi=document.getElementById('bfind'); fi.value=''; fi.placeholder = mode==='season'?'Type a season…':'Type a tag…';
+  document.getElementById('bscrim').classList.add('on'); renderBrowse(); setTimeout(function(){fi.focus();},30); }
+function closeBrowse(){ document.getElementById('bscrim').classList.remove('on'); }
+function renderBrowse(){
+  var items=index(BMODE), q=document.getElementById('bfind').value.trim().toLowerCase();
+  if(q) items=items.filter(i=>i.name.toLowerCase().indexOf(q)>-1);
+  document.getElementById('bcount').textContent=items.length+(BMODE==='season'?' seasons':' tags');
+  if(!items.length){ document.getElementById('blist').innerHTML='<div class="bnone">Nothing matches that.</div>'; return; }
+  var html='',cur='';
+  items.forEach(function(i){
+    var k=i.name.charAt(0).toUpperCase()||'#';
+    if(BMODE==='topic' && k!==cur){ if(cur)html+='</div>'; html+='<div class="bletter">'+k+'</div><div class="bcols">'; cur=k; }
+    html+='<button class="brow" onclick="pickBrowse('+JSON.stringify(i.name).replace(/"/g,'&quot;')+')">'+esc(i.name)+'<span class="n">'+i.n+'</span></button>';
+  });
+  if(cur)html+='</div>';
+  document.getElementById('blist').innerHTML=html;
+}
+function pickBrowse(name){ closeBrowse(); if(BMODE==='season') openSeason(String(name).replace(/\D/g,'')); else openTopic(name); }
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){ closeBrowse(); }
+  if((e.key==='Escape'||e.key==='Enter') && document.getElementById('iscrim').classList.contains('on')) closeIntro();
+});
+
+/* ---------- one-time welcome ---------- */
+var INTROKEY='lji_intro_v1';
+function closeIntro(){ document.getElementById('iscrim').classList.remove('on'); try{ localStorage.setItem(INTROKEY,'1'); }catch(e){} }
+function maybeIntro(){ var seen=false; try{ seen=localStorage.getItem(INTROKEY)==='1'; }catch(e){}
+  if(seen||location.hash) return; document.getElementById('iscrim').classList.add('on'); }
+
+/* ---------- routing ---------- */
+function route(){ let h=location.hash;
+  /* an order in the address: #/newest or #/oldest, alone or as a prefix (#/oldest/topic/varroa, #/oldest/read/<id>) */
+  const om=h.match(/^#\/(newest|oldest)(?=\/|$)/);
+  if(om){ setOrder(om[1]==='oldest'?'old':'new',false); build(); h='#'+(h.slice(om[0].length)||'/all'); }
+  if(h.startsWith('#/read/')){ const id=h.slice(7); if(byId(id)){ closeTopic(); if(id!==LANES[0].active){ LANES[0].active=id; build(); } requestAnimationFrame(()=>scrollCover(0)); } return; }
+  if(h.startsWith('#/entry/')) h='#/article/'+h.slice(8);            /* #/entry/<id>/<page>: straight to a page */
+  if(h.startsWith('#/article/')){ const q=h.slice(10).split('/'); const id=q[0], p=parseInt(q[1],10)||1; if(byId(id)){ setLane(0); jumpTo(id,p); } return; }
+  if(h.startsWith('#/topic/')){ openTopic(decodeURIComponent(h.slice(8))); return; }
+  if(h.startsWith('#/season/')){ openSeason(h.slice(9)); return; }
+  if(h==='#/all'){ const was=(LANES[0].active!==null)||!!om; if(LANES[0].active!==null){ LANES[0].active=null; build(); } closeTopic();
+      /* only scroll when this hash change is what opened the list; backToTop/closeArticle place the view themselves */
+      if(was){ requestAnimationFrame(()=>{ laneEl(0).scrollTop=0; }); } return; }
+  closeTopic(); }
+LANES[0].active=sorted(ARTS,'new')[0].id;
+setZoom(ZOOM);
+build();
+window.addEventListener('keydown',function(e){
+  if(/INPUT|TEXTAREA|SELECT/.test((e.target&&e.target.tagName)||'')) return;
+  const t=document.getElementById('track');
+  if(e.key==='ArrowLeft'){ setLane(t.classList.contains('right')?0:-1); }
+  if(e.key==='ArrowRight'&&!t.classList.contains('right')){ if(t.classList.contains('left')) setLane(0); }
+  if(e.key==='Escape') setLane(0);
+});
+
+/* ---------- clicks inside a stacked page ----------
+   The page in a stacked card is a live iframe so its words are real text and its links work. Its script
+   reports any click that was NOT on a link; here that opens the card, as clicking the photo used to.
+   Not part of the bee block below: that only runs on hover devices, and a tap has to do this too. */
+window.addEventListener('message',function(e){
+  const m=e.data; if(!m||m.abj!=='click') return;
+  let fr=null; for(const f of document.querySelectorAll('iframe')){ if(f.contentWindow===e.source){ fr=f; break; } }
+  if(PIC.mode!=='idle'){ picClose(true); return; }                   /* spend it on the picture instead */
+  const arc=fr && fr.closest('.deck') ? fr.closest('.arc') : null;   /* only pages sitting in the stack */
+  if(arc) arc.click();
+});
+
+/* ---------- picture enlarger ----------
+   Hover a picture and it starts to grow - slowly at first, then faster - towards its full size or the window,
+   whichever is smaller. Click while it is under half way and it jumps to full size and stays; click once it is
+   past half way (or full) and it closes. Leaving it before you click lets it settle back. Esc closes. */
+const PIC={el:null,scrim:null,p:0,goal:0,mode:'idle',id:null,from:null,to:null,cool:null,last:0,over:false};
+function picRects(m,frame){
+  const fr=frame.getBoundingClientRect();
+  const from={x:fr.left+m.r.x,y:fr.top+m.r.y,w:m.r.w,h:m.r.h};
+  const top=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--chromeH'))||58;
+  const vw=innerWidth-48, vh=innerHeight-top-48;
+  const k=Math.min(1, vw/m.nw, vh/m.nh), w=m.nw*k, h=m.nh*k;
+  const to={x:(innerWidth-w)/2, y:top+24+(vh-h)/2, w:w, h:h};
+  return {from:from,to:to};
+}
+function picFrameFor(source){ let f=null; document.querySelectorAll('iframe').forEach(x=>{ if(x.contentWindow===source) f=x; }); return f; }
+function picStart(m,source,jump){
+  const frame=picFrameFor(source); if(!frame) return;
+  if(PIC.cool===m.id && !jump) return;
+  if(PIC.id!==m.id || PIC.mode==='idle'){
+    const r=picRects(m,frame); PIC.from=r.from; PIC.to=r.to; PIC.id=m.id; PIC.p=0;
+    PIC.el.src=m.src; PIC.el.classList.add('on'); PIC.el.classList.remove('big'); PIC.fast=false;
+  }
+  picGo(jump?'lock':'grow',1);
+}
+function picGo(mode,goal){ const was=PIC.mode; PIC.mode=mode; PIC.goal=goal; PIC.last=performance.now(); if(was==='idle'||was==='lock'||was==='close'||PIC.p>=1||PIC.p<=0) picTick(); }
+function picClick(){
+  if(PIC.mode==='idle') return;
+  if(PIC.p<0.5 && PIC.mode!=='lock') picGo('lock',1);
+  else picClose();
+}
+function picClose(fast){ if(PIC.mode==='idle') return; PIC.fast=!!fast; PIC.cool=PIC.id; PIC.scrim.classList.remove('on'); picGo('close',0); }
+function picDraw(){
+  const f=PIC.from,t=PIC.to,p=PIC.p, e=PIC.el;
+  e.style.left=(f.x+(t.x-f.x)*p)+'px'; e.style.top=(f.y+(t.y-f.y)*p)+'px';
+  e.style.width=(f.w+(t.w-f.w)*p)+'px'; e.style.height=(f.h+(t.h-f.h)*p)+'px';
+  e.classList.toggle('big',p>=0.5);
+}
+function picTick(){
+  PIC.ticking=false;
+  if(PIC.mode==='idle') return;
+  const now=performance.now(), dt=Math.min(.05,(now-PIC.last)/1000); PIC.last=now;
+  let rate;
+  if(PIC.mode==='grow') rate=0.06+1.4*PIC.p;            /* slow start, gathering pace: ~2.3s to full */
+  else if(PIC.mode==='lock') rate=4;                     /* the click: straight to full */
+  else rate=PIC.fast?9:3;                                /* dismissed outright / settling back */
+  PIC.p += (PIC.goal>PIC.p?1:-1)*rate*dt;
+  if(PIC.goal>=1 && PIC.p>=1){ PIC.p=1; picDraw(); if(PIC.mode==='lock') PIC.scrim.classList.add('on'); if(PIC.mode==='grow'){ PIC.mode='lock'; PIC.scrim.classList.add('on'); } return; }
+  if(PIC.goal<=0 && PIC.p<=0){ PIC.p=0; PIC.mode='idle'; PIC.el.classList.remove('on','big'); return; }
+  picDraw(); if(!PIC.ticking){ PIC.ticking=true; requestAnimationFrame(picTick); }
+}
+(function(){
+  PIC.el=document.getElementById('picz'); PIC.scrim=document.getElementById('picscrim'); if(!PIC.el) return;
+  PIC.el.addEventListener('mouseenter',()=>{ PIC.over=true; if(PIC.mode==='settle') picGo('grow',1); });
+  PIC.el.addEventListener('mouseleave',()=>{ PIC.over=false; if(PIC.mode==='grow') picGo('settle',0); });
+  window.addEventListener('message',function(e){
+    const m=e.data; if(!m||!m.abj) return;
+    if(m.abj==='pic'){ picStart(m,e.source,false); return; }
+    if(m.abj==='picclick'){ picStart(m,e.source,true); return; }
+    if(m.abj==='picleave'){ if(PIC.cool===m.id) PIC.cool=null; /* the pointer has left the picture: it may grow again next time */
+      if(PIC.mode==='grow' && !PIC.over && PIC.p<0.02) picGo('settle',0); return; }
+  });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape') picClose(); });
+
+  /* Scrolling on is a decision not to look at it. Whatever the picture is doing - creeping open, fully
+     open, locked open by a click - it settles back and the scroll goes through, rather than the reader
+     being held in place. The delta has to be passed on by hand: once #picz (or the lit scrim) is under
+     the pointer the wheel lands on a fixed element with nothing scrollable above it, so the browser
+     would scroll nothing at all. */
+  function picLane(){ return laneEl(document.body.classList.contains('inlane')?1:0); }
+  window.addEventListener('wheel',function(e){
+    if(PIC.mode==='idle') return;
+    const onOverlay = e.target===PIC.el || e.target===PIC.scrim || PIC.scrim.classList.contains('on');
+    picClose();
+    if(!onOverlay) return;                                   /* pointer still over the page: it scrolls itself */
+    const ln=picLane(); if(!ln) return;
+    const unit = e.deltaMode===1 ? 16 : e.deltaMode===2 ? ln.clientHeight : 1;
+    ln.scrollTop += e.deltaY*unit;
+    ln.scrollLeft += e.deltaX*unit;
+  },{passive:true,capture:true});
+  /* A picture growing when you did not want one: click anywhere off it and it drops straight back.
+     Until it is fully open the scrim is not listening (it only takes the pointer once lit), so there
+     was nothing out there to click. Capture, so this runs before whatever was clicked - the click is
+     spent on dismissing the picture and should not also open an article or close the one you are in. */
+  window.addEventListener('click',function(e){
+    if(PIC.mode==='idle' || e.target===PIC.el) return;      /* on the picture itself: picClick decides */
+    picClose(true);
+    e.stopPropagation(); e.preventDefault();
+  },true);
+  /* same trap on a touch screen, where a tap can lock a picture open and there is nothing to hover away to */
+  window.addEventListener('touchmove',function(){ if(PIC.mode!=='idle') picClose(); },{passive:true,capture:true});
+})();
+
+/* ---------- the cat ----------
+   She walks after the pointer: in profile when it moves sideways (facing the way she is going), away from
+   you when it moves up, towards you when it moves down. Two seconds still and she sits. Over anything
+   clickable she sits and bats at it, and the paw tip is then the pointer. Pages report the pointer from
+   inside their frames the same way they did for the bee. Hover devices only. */
+(function(){
+  if(!matchMedia('(hover:hover)').matches) return;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const cat=document.getElementById('cat'); if(!cat) return;
+  document.body.classList.add('bee-on');
+  /* ---- dials ---- */
+  const FOLLOW=0.18, SIT_AFTER=2000, VERTICAL=1.35, TURN_HOLD=140, STEP=0.09, BAT_SWING=0.014, BAT_ON=1300, BAT_OFF=650, K=50/60;
+  const $=id=>document.getElementById(id);
+  const svgs={side:$('sSide'),front:$('sFront'),back:$('sBack'),sit:$('sSit'),bat:$('sBat')};
+  const HOT={side:{x:7,y:32},front:{x:30,y:30},back:{x:30,y:22},sit:{x:10,y:29},bat:{x:6,y:37}};
+  let tx=innerWidth/2, ty=innerHeight/2, x=tx, y=ty, started=false, faceLeft=true, phase=0, lastMove=performance.now();
+  let mode='side', facing='side', pendFacing='side', pendSince=0, overLink=false, blinkAt=performance.now()+3000, lastT=performance.now(), batT0=0;
+  /* hand-off between the readers on this site: arrive where the other one's cursor left off */
+  const HAND='kf_bee';
+  try{ const h=JSON.parse(localStorage.getItem(HAND)||'null');
+    if(h && Date.now()-h.t<8000 && isFinite(h.x) && isFinite(h.y)){ tx=x=h.x; ty=y=h.y; started=true; cat.classList.add('on'); }
+    localStorage.removeItem(HAND); }catch(e){}
+  window.addEventListener('pagehide',function(){ try{ localStorage.setItem(HAND,JSON.stringify({x:x,y:y,a:0,t:Date.now()})); }catch(e){} });
+  /* what counts as clickable: everything the stylesheet gives a pointer cursor, plus the obvious */
+  let CLICK='a[href],button,[role="button"]';
+  (function(){
+    const sel=[];
+    (function walk(rules){ if(!rules) return;
+      for(const r of rules){ if(r.cssRules) walk(r.cssRules);
+        if(r.style && r.style.cursor==='pointer' && r.selectorText && r.selectorText.indexOf('::')<0) sel.push(r.selectorText.replace(/:hover/g,'')); } })
+    (function(){ const a=[]; for(const sh of document.styleSheets){ try{ if(sh.cssRules) a.push(...sh.cssRules); }catch(e){} } return a; }());
+    const NOFOLD=['.arc','.cov','.arc .page','.cov img'];
+    for(const q of sel){ if(NOFOLD.indexOf(q.trim())>=0) continue; try{ document.querySelector(q); CLICK+=','+q; }catch(e){} }
+  })();
+  function overClick(){ if(!document.elementFromPoint) return false; const el=document.elementFromPoint(tx,ty); return !!(el && el.closest && el.closest(CLICK)); }
+  function aim(nx,ny,isLink){ tx=nx; ty=ny; if(!started){ x=tx; y=ty; started=true; } cat.classList.add('on');
+    overLink = (isLink===undefined) ? overClick() : !!isLink; }
+  function hide(){ cat.classList.remove('on'); }
+  document.addEventListener('mousemove',e=>aim(e.clientX,e.clientY),{passive:true});
+  document.documentElement.addEventListener('mouseleave',hide);
+  document.documentElement.addEventListener('mouseenter',()=>cat.classList.add('on'));
+  window.addEventListener('message',function(e){
+    const m=e.data; if(!m||!m.abj) return;
+    if(m.abj==='hello' && e.source){ try{ e.source.postMessage({abj:'bee',on:true},'*'); }catch(err){} return; }
+    if(m.abj==='pointerleave'){ hide(); return; }
+    if(m.abj!=='pointer') return;
+    let fr=null; for(const f of document.querySelectorAll('iframe')){ if(f.contentWindow===e.source){ fr=f; break; } }
+    if(!fr) return;
+    const r=fr.getBoundingClientRect(), k=r.width/(fr.offsetWidth||r.width);
+    aim(r.left+m.x*k, r.top+m.y*k, m.link);
+  });
+  function show(which){ for(const k in svgs) svgs[k].classList.toggle('hid',k!==which); mode=which; }
+  function tf(id,v){ const e=$(id); if(e) e.setAttribute('transform',v); }
+  function frame(t){
+    requestAnimationFrame(frame);
+    const dt=Math.min(3,(t-lastT)/16.7); lastT=t;
+    const dx=tx-x, dy=ty-y, dist=Math.hypot(dx,dy), step=Math.min(dist,dist*FOLLOW*dt);
+    let mx=0,my=0; if(dist>0.5){ mx=dx/dist*step; my=dy/dist*step; x+=mx; y+=my; }
+    const speed=step/dt, moving=speed>0.35;
+    if(moving){ lastMove=t;
+      let want = Math.abs(my)>Math.abs(mx)*VERTICAL ? (my<0?'back':'front') : 'side';
+      if(want!==pendFacing){ pendFacing=want; pendSince=t; }
+      if(pendFacing!==facing && t-pendSince>TURN_HOLD) facing=pendFacing;
+      if(Math.abs(mx)>0.2) faceLeft = mx<0; }
+    const still=t-lastMove;
+    let want = overLink ? 'bat' : (still>SIT_AFTER ? 'sit' : facing);
+    if(want!==mode){ if(want==='bat') batT0=t; show(want); }
+    if(mode==='side'||mode==='front'||mode==='back'){
+      if(moving) phase+=Math.min(0.55,0.08+speed*STEP)*dt; else phase+=(Math.round(phase/Math.PI)*Math.PI-phase)*0.25;
+      const s=Math.sin(phase), c=Math.cos(phase), bob=-Math.abs(s)*1.2;
+      if(mode==='side'){
+        tf('lFN','translate('+(s*3).toFixed(2)+','+(Math.max(0,-c)*-2).toFixed(2)+')'); tf('lHF','translate('+(s*3).toFixed(2)+','+(Math.max(0,-c)*-2).toFixed(2)+')');
+        tf('lFF','translate('+(-s*3).toFixed(2)+','+(Math.max(0,c)*-2).toFixed(2)+')'); tf('lHN','translate('+(-s*3).toFixed(2)+','+(Math.max(0,c)*-2).toFixed(2)+')');
+        tf('gBob','translate(0,'+bob.toFixed(2)+')'); tf('gTail','rotate('+((moving?Math.sin(phase*0.5)*5:Math.sin(t*0.0012)*2)).toFixed(2)+' 47 33)');
+      } else if(mode==='front'){
+        tf('fLL','translate('+(s*0.6).toFixed(2)+','+(Math.max(0,s)*-2.5).toFixed(2)+')'); tf('fLR','translate('+(-s*0.6).toFixed(2)+','+(Math.max(0,-s)*-2.5).toFixed(2)+')');
+        tf('fHead','translate('+(s*0.8).toFixed(2)+','+bob.toFixed(2)+')'); tf('fTail','rotate('+((moving?Math.sin(phase*0.5)*6:Math.sin(t*0.0012)*2)).toFixed(2)+' 30 34)');
+      } else {
+        tf('bLL','translate('+(s*0.6).toFixed(2)+','+(Math.max(0,s)*-2.5).toFixed(2)+')'); tf('bLR','translate('+(-s*0.6).toFixed(2)+','+(Math.max(0,-s)*-2.5).toFixed(2)+')');
+        tf('bFL','translate(0,'+(Math.max(0,-s)*-2).toFixed(2)+')'); tf('bFR','translate(0,'+(Math.max(0,s)*-2).toFixed(2)+')');
+        tf('bHead','translate('+(s*0.8).toFixed(2)+','+bob.toFixed(2)+')'); tf('bTail','rotate('+((moving?Math.sin(phase*0.5)*7:Math.sin(t*0.0012)*2)).toFixed(2)+' 30 46)');
+      }
+    }
+    if(mode==='bat'){ const cyc=(t-batT0)%(BAT_ON+BAT_OFF), on=cyc<BAT_ON;
+      tf('batArm','rotate('+(on ? 78+Math.sin(cyc*BAT_SWING)*17 : 70+Math.sin(t*0.002)*2).toFixed(2)+' 25 38)'); }
+    if(t>blinkAt){ blinkAt=t+3500+Math.random()*4000;
+      cat.querySelectorAll('ellipse[fill="#c9c04a"]').forEach(e=>{ const ry=e.getAttribute('ry'); e.setAttribute('ry','0.4'); setTimeout(()=>e.setAttribute('ry',ry),110); }); }
+    const hs=HOT[mode], flip=(mode==='side'||mode==='sit'||mode==='bat') && !faceLeft;
+    cat.classList.toggle('flip',flip);
+    const hx=(flip?60-hs.x:hs.x)*K, hy=hs.y*K;
+    cat.style.transform='translate3d('+(x-hx).toFixed(1)+'px,'+(y-hy).toFixed(1)+'px,0)';
+  }
+  requestAnimationFrame(frame);
+})();
+
+/* ---------- the sky ----------
+   Behind everything: dust motes drifting, three or four bees a few pixels long working the air lazily,
+   and now and then a butterfly crossing. Meant to be noticed on the third visit, not the first.
+   Nothing here on a reduced-motion setting (a still sky), and it sleeps while the tab is hidden. */
+(function(){
+  const c=document.getElementById('skyc'); if(!c||!c.getContext) return;
+  const ctx=c.getContext('2d',{alpha:true}); if(!ctx) return;
+  window.__skyctx=ctx;
+  const cf=document.getElementById('skyf'); const fx=cf&&cf.getContext?cf.getContext('2d',{alpha:true}):null;   /* the front pane: only the balloon, floating past the pages */
+  const STILL=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W=1,H=1,dpr=1, motes=[], bees=[], fly=null;
+  function size(){ const oW=W,oH=H; dpr=Math.min(2,window.devicePixelRatio||1); W=innerWidth; H=innerHeight;
+    c.width=Math.round(W*dpr); c.height=Math.round(H*dpr); c.style.width=W+'px'; c.style.height=H+'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.imageSmoothingEnabled=false;
+    if(fx){ cf.width=c.width; cf.height=c.height; cf.style.width=W+'px'; cf.style.height=H+'px'; fx.setTransform(dpr,0,0,dpr,0,0); }
+    if(oW>1&&oH>1){ const kx=W/oW, ky=H/oH; for(const m of motes){ m.x*=kx; m.y*=ky; } for(const b of bees){ b.x*=kx; b.y*=ky; } } }
+  size(); addEventListener('resize',size);
+  const R=Math.random, TAU=Math.PI*2;
+  /* motes: tiny, slow, mostly rising, each with its own breath */
+  for(let i=0;i<34;i++) motes.push({x:R()*W,y:R()*H,r:1.0+R()*1.4,a:.45+R()*.35,vx:(R()-.5)*.35,vy:-.15-R()*.35,ph:R()*TAU,f:.4+R()*.8});   /* ~10-20 px/s, mostly rising, each wandering sideways */
+  /* bees: a heading that wanders, a speed that eases, an occasional hover */
+  function goal(){ return {x:W*.03+R()*W*.94, y:H*.05+R()*H*.85}; }
+  for(let i=0;i<8;i++){ const g=goal(); bees.push({x:R()*W,y:H*.08+R()*H*.75,h:R()*TAU,sp:1.2+R()*.7,hov:0,wing:0,dark:(R()<.5),gx:g.x,gy:g.y}); }   /* ~40-60 px/s, each on its way somewhere */
+  /* butterflies: one at a time, rarely, crossing the width on a slow sine and gone */
+  let nextFly=performance.now()+15000+R()*30000;
+  /* the balloon: pale pink, let go at the foot of the last page; rises with a sway on a wavy string */
+  let balloon=null;
+  window.skyBalloon=function(){ if(balloon) return; balloon={x:W*.3+R()*W*.4,y:H+50,ph:R()*TAU,sp:1.3+R()*.5,t0:performance.now()}; start(); };
+  function drawBalloon(b,t){
+    const ctx=fx||window.__skyctx;   /* in front of the pages when the front pane exists */
+    const sway=Math.sin(t*0.0016+b.ph)*.9; b.x+=sway*.5; b.y-=b.sp;
+    const x=b.x, y=b.y, tilt=Math.sin(t*0.0016+b.ph)*0.12;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(tilt);
+    ctx.strokeStyle='rgba(120,110,100,.55)'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(0,17);
+    ctx.bezierCurveTo(4,30,-4,42,2,58); ctx.stroke();                              /* the string */
+    ctx.fillStyle='#f0a8bd'; ctx.beginPath(); ctx.moveTo(-2.5,17); ctx.lineTo(2.5,17); ctx.lineTo(0,13.5); ctx.closePath(); ctx.fill();  /* the knot */
+    ctx.fillStyle='#f3b6c9'; ctx.beginPath(); ctx.ellipse(0,0,12,15,0,0,TAU); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.55)'; ctx.beginPath(); ctx.ellipse(-4.5,-6,3.2,5,-.5,0,TAU); ctx.fill();   /* the shine */
+    ctx.restore();
+  }
+  const FLYCOL=[['#f4e2a8','#e9c46a'],['#f7d6e0','#e8a8c0'],['#dcefff','#a9c8e8'],['#f8e8c8','#e0b070']];
+  function newFly(){ const dir=R()<.5?1:-1, col=FLYCOL[(R()*FLYCOL.length)|0];
+    return {x:dir>0?-12:W+12,y:H*.15+R()*H*.6,dir:dir,sp:1.2+R()*.6,ph:R()*TAU,col:col,life:0,amp:10+R()*14}; }
+  function drawBee(b){
+    const x=Math.round(b.x), y=Math.round(b.y);
+    ctx.fillStyle=b.dark?'#2a2214':'#3a2c14';
+    ctx.fillRect(x,y,4,2);                                   /* the body: four pixels long, two high */
+    ctx.fillStyle='#e0a832'; ctx.fillRect(x+1,y,1,2); ctx.fillRect(x+3,y,1,1);   /* the bands */
+    /* wings: a white pixel over each shoulder, shown on alternate ticks - the flicker is the flight */
+    ctx.fillStyle='rgba(255,255,255,.92)';
+    if(b.wing) ctx.fillRect(x,y-1,2,1); else ctx.fillRect(x+2,y-1,2,1);
+  }
+  function drawFly(f,t){
+    const flap=Math.abs(Math.sin(t*0.012+f.ph));            /* 0 = wings closed (seen edge-on), 1 = spread */
+    const x=Math.round(f.x), y=Math.round(f.y+Math.sin(t*0.002+f.ph)*f.amp);
+    const w=Math.max(1,Math.round(3*flap)), a=Math.min(1,f.life/90)*Math.min(1,(f.x<-12||f.x>W+12)?0:1);
+    ctx.globalAlpha=a*.9;
+    ctx.fillStyle=f.col[0]; ctx.fillRect(x-w,y-1,w,2); ctx.fillRect(x+1,y-1,w,2);   /* forewings */
+    ctx.fillStyle=f.col[1]; ctx.fillRect(x-w,y+1,Math.max(1,w-1),1); ctx.fillRect(x+1,y+1,Math.max(1,w-1),1); /* hindwings */
+    ctx.fillStyle='#4a3a22'; ctx.fillRect(x,y-1,1,3);        /* the body between */
+    ctx.globalAlpha=1;
+  }
+  let last=0, tick=0, running=false;
+  function frame(t){
+    if(document.hidden){ running=false; return; }
+    requestAnimationFrame(frame);
+    if(t-last<33) return;                                    /* ~30 fps is plenty for things this small */
+    const dt=Math.min(3,(t-last)/33); last=t; tick++;
+    ctx.clearRect(0,0,W,H);
+    for(const m of motes){
+      m.x+=m.vx*dt+Math.sin(t*0.0009*m.f+m.ph)*.25; m.y+=m.vy*dt;
+      if(m.y<-4){ m.y=H+4; m.x=R()*W; } if(m.x<-4) m.x=W+4; if(m.x>W+4) m.x=-4;
+      const ma=m.a*(.7+.3*Math.sin(t*0.001*m.f+m.ph));
+      ctx.globalAlpha=ma*.35; ctx.fillStyle='#fff8e8'; ctx.beginPath(); ctx.arc(m.x,m.y,m.r*2.4,0,TAU); ctx.fill();   /* a soft halo: dust catching light */
+      ctx.globalAlpha=ma; ctx.fillStyle='#ffffff'; ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    for(const b of bees){
+      if(b.hov>0){ b.hov-=dt; b.x+=Math.sin(t*0.01)*.2; b.y+=Math.cos(t*0.013)*.2; }
+      else{
+        /* steer toward the goal with a limited turn rate - a purposeful line with a small waver in it */
+        const want=Math.atan2(b.gy-b.y,b.gx-b.x); let d=((want-b.h+Math.PI)%TAU+TAU)%TAU-Math.PI;
+        b.h+=Math.max(-.09,Math.min(.09,d))*dt + Math.sin(t*0.004+b.gx)*.015;
+        const sp=b.sp*(.9+.1*Math.sin(t*0.003+b.h));
+        b.x+=Math.cos(b.h)*sp*dt; b.y+=Math.sin(b.h)*sp*dt;
+        if(Math.hypot(b.gx-b.x,b.gy-b.y)<10){ const g=goal(); b.gx=g.x; b.gy=g.y; if(R()<.35) b.hov=8+R()*16; if(R()<.3) b.sp=1.2+R()*.7; }   /* arrived: a short look round, sometimes */
+      }
+      if(b.x<-6||b.x>W+6||b.y<-6||b.y>H+6){ const g=goal(); b.gx=g.x; b.gy=g.y; }
+      if(tick%2===0) b.wing=!b.wing;
+      drawBee(b);
+    }
+    if(fx) fx.clearRect(0,0,W,H);
+    if(balloon){ drawBalloon(balloon,t); if(balloon.y<-80) balloon=null; }
+    if(!fly && t>nextFly) fly=newFly();
+    if(fly){ fly.life+=dt; fly.x+=fly.dir*fly.sp*dt; drawFly(fly,t);
+      if((fly.dir>0&&fly.x>W+14)||(fly.dir<0&&fly.x<-14)){ fly=null; nextFly=t+25000+R()*50000; } }
+  }
+  function start(){ if(running) return; running=true; last=performance.now(); requestAnimationFrame(frame); }
+  if(STILL){                                                  /* a still sky: the motes only, once */
+    ctx.clearRect(0,0,W,H);
+    for(const m of motes){ ctx.globalAlpha=m.a; ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(m.x,m.y,m.r,0,TAU); ctx.fill(); }
+    addEventListener('resize',function(){ ctx.clearRect(0,0,W,H); });
+    return;
+  }
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) start(); });
+  start();
+})();
+
+window.addEventListener('hashchange',route);
+if(location.hash) route(); else scrollCover(0);
+maybeIntro();
+</script>
+</body></html>

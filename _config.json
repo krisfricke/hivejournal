@@ -1,0 +1,15 @@
+{
+ "base": "https://krisfricke.github.io/hivejournal/",
+ "author": "Kris Fricke",
+ "site_title": "Kris Fricke — LJ Idol",
+ "home": "https://emo-snal.livejournal.com/",
+ "home_label": "emo_snal on LiveJournal",
+ "up_url": "https://therealljidol.dreamwidth.org/1221588.html",
+ "up_label": "This week’s topic post",
+ "portfolio": "https://krisfricke.github.io/portfolio/",
+ "dw_tag_base": "https://aggienaut.dreamwidth.org/tag/",
+ "folio_prefix": "LJI",
+ "frame_color": "#FBAA19",
+ "frame_inset_mm": 10,
+ "frame_width_pt": 1.5
+}
