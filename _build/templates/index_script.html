@@ -379,9 +379,9 @@ window.addEventListener('message',function(e){
 });
 
 /* ---------- picture enlarger ----------
-   Hover a picture and it starts to grow - slowly at first, then faster - towards its full size or the window,
-   whichever is smaller. Click while it is under half way and it jumps to full size and stays; click once it is
-   past half way (or full) and it closes. Leaving it before you click lets it settle back. Esc closes. */
+   Click a picture and it opens to its full size or the window, whichever is smaller, and stays. Click it
+   again, click anywhere else, scroll, or press Esc and it closes. (Hover used to grow it; readers found
+   that annoying, so the page just pulses the picture once when the pointer arrives.) */
 const PIC={el:null,scrim:null,p:0,goal:0,mode:'idle',id:null,from:null,to:null,cool:null,last:0,over:false};
 function picRects(m,frame){
   const fr=frame.getBoundingClientRect();
@@ -434,7 +434,7 @@ function picTick(){
   PIC.el.addEventListener('mouseleave',()=>{ PIC.over=false; if(PIC.mode==='grow') picGo('settle',0); });
   window.addEventListener('message',function(e){
     const m=e.data; if(!m||!m.abj) return;
-    if(m.abj==='pic'){ picStart(m,e.source,false); return; }
+    /* hover no longer grows a picture: the page pulses it once instead; only a click opens it */
     if(m.abj==='picclick'){ picStart(m,e.source,true); return; }
     if(m.abj==='picleave'){ if(PIC.cool===m.id) PIC.cool=null; /* the pointer has left the picture: it may grow again next time */
       if(PIC.mode==='grow' && !PIC.over && PIC.p<0.02) picGo('settle',0); return; }
