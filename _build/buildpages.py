@@ -13,6 +13,8 @@ Adds, over each page: the picture hotspots (hover text + screen-reader text from
 """
 import json, os, re, sys, html
 import pymupdf as fitz
+import notes as _notes
+NOTES, NOTE_STARTS = {}, set()     # per entry: footnote text by marker, and where the notes themselves begin
 
 SCALE = 1.6
 PIC_DPI = 150          # the enlargeable copy of each picture: generous on screen, modest on disk
@@ -256,7 +258,11 @@ def build_page(doc, pno, outdir, n, title, links_out, manual=(), ocr=False):
                     if inter(sb, (r.x0, r.y0, r.x1, r.y1)) > 0.5 * sa:
                         href = u; break
                 if href: links_out.append(href)
-                segs.append([t, span_style(s), href])
+                seg = [t, span_style(s), href]
+                if (s['flags'] & 1) and NOTES and (n, round(y0)) not in NOTE_STARTS:
+                    note = _notes.note_for(_notes.markers(t), NOTES)
+                    if note: seg.append(note)                       # a superscript with a note behind it
+                segs.append(seg)
             if not segs: continue
             just = at_edge(x1) and (li < len(blines) - 1 or len(blines) == 1 or widths[li] >= 0.985 * maxw)
             attrs = ' data-w="%.1f"' % ((x1 - x0) * SCALE) + (' data-j="1"' if just else '')
@@ -270,9 +276,9 @@ def build_page(doc, pno, outdir, n, title, links_out, manual=(), ocr=False):
         # a link that ends a line carries the line's trailing space; keep the space out of the anchor
         # so a stretched (justified) line does not grow an underlined gap after the last word
         if segs and segs[-1][2] and segs[-1][0].endswith(' '):
-            t, st, h = segs[-1]; segs[-1] = [t.rstrip(' '), st, h]; segs.append([' ', st, None])
+            t, st, h = segs[-1][:3]; segs[-1] = [t.rstrip(' '), st, h] + list(segs[-1][3:]); segs.append([' ', st, None])
         return segs
-    lines_html = [head + ''.join(render_seg(t, st, h) for t, st, h in _unlink_tail(segs)) + '</p>' for head, segs in lines_html]
+    lines_html = [head + ''.join(render_seg(*sg) for sg in _unlink_tail(segs)) + '</p>' for head, segs in lines_html]
     bg = fitz.open(); bg.insert_pdf(doc, from_page=pno, to_page=pno)
     bp = bg[0]
     for r in ([] if ocr else redact): bp.add_redact_annot(r)
@@ -335,8 +341,12 @@ def build_page(doc, pno, outdir, n, title, links_out, manual=(), ocr=False):
     open(os.path.join(outdir, '%d.html' % n), 'w', encoding='utf-8').write(doc_html)
     return {'lines': textlines, 'paras': paras, 'mm': [round(wmm, 2), round(hmm, 2)]}
 
-def render_seg(t, st, href):
+def render_seg(t, st, href, note=None):
     inner = '<span style="%s">%s</span>' % (st, html.escape(t, quote=False))
+    if note:
+        marks = ','.join(_notes.markers(t))
+        inner = '<span class="fn" tabindex="0" data-n="%s" data-note="%s" aria-label="Note %s: %s">%s</span>' % (
+            html.escape(marks, quote=True), html.escape(note, quote=True), html.escape(marks, quote=True), html.escape(note, quote=True), inner)
     return '<a href="%s" target="_blank" rel="noopener">%s</a>' % (html.escape(href, quote=True), inner) if href else inner
 
 DOCLINKS = []; LINKI = 0; FOUND = []          # hyperlinks harvested from the .docx, in document order
@@ -400,13 +410,13 @@ def apply_links(lines, n, links_out, manual=()):
     for ln, (head, segs) in enumerate(lines):
         new = []
         for sn, seg in enumerate(segs):
-            t, st, h = seg; L = len(t)
+            t, st, h = seg[:3]; L = len(t)
             marks = [url_at.get(base + ci, h) for ci in range(L)]; base += L
             if all(m == h for m in marks): new.append(seg); continue
             start = 0
             for ci in range(1, L + 1):
                 if ci == L or marks[ci] != marks[start]:
-                    new.append([t[start:ci], st, marks[start]]); start = ci
+                    new.append([t[start:ci], st, marks[start]] + list(seg[3:])); start = ci
         base += 1                                  # the line separator
         lines[ln][1] = new
 
@@ -442,6 +452,7 @@ p{margin:0;position:absolute}
 a{color:inherit}
 a:hover{text-decoration:underline}
 a.pic{position:absolute;display:block;z-index:4;cursor:zoom-in;border-radius:2px}
+'''+_notes.CSS+'''
 /* one pulse as the pointer arrives - a ring that swells and fades - to say 'this one opens'; nothing more until a click */
 a.pic.pulse{animation:picpulse .8s ease-out 1}
 @keyframes picpulse{0%%{box-shadow:0 0 0 0 rgba(251,170,25,.85),inset 0 0 0 0 rgba(255,255,255,.0)}35%%{box-shadow:0 0 0 7px rgba(251,170,25,.55),inset 0 0 0 0 rgba(255,255,255,.18)}100%%{box-shadow:0 0 0 16px rgba(251,170,25,0),inset 0 0 0 0 rgba(255,255,255,0)}}
@@ -464,7 +475,8 @@ a.pic.pulse{animation:picpulse .8s ease-out 1}
 </style></head><body><div class="sheet"><div class="scaler"><div class="page">
 '''
 
-TAIL = '''<script>
+TAIL = '''<script>'''+_notes.JS+'''</script>
+<script>
 /* The reader tells this page how big to draw itself, so text is re-rendered at the new size
    instead of being stretched as a bitmap (which is what happens when an iframe is transform-scaled). */
 (function(){
@@ -570,6 +582,9 @@ def build_entry(pdf_path, outdir, title, manual=(), docx=None):
     os.makedirs(outdir, exist_ok=True)
     doc = fitz.open(pdf_path)
     learn_fonts(doc)
+    global NOTES, NOTE_STARTS
+    NOTES, NOTE_STARTS = _notes.harvest(doc, list(range(doc.page_count)), clean)
+    if NOTES: print('   footnotes as hover text:', ', '.join(sorted(NOTES, key=lambda k: (len(k), k))))
     for n_, pg in enumerate(doc, start=1): PAGE_TEXT[n_] = _norm(clean(pg.get_text()))   # for the link cursor's look-ahead
     # the folio sits on the text margin: the commonest left edge of a long line
     import collections as _c

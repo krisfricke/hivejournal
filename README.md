@@ -77,6 +77,13 @@ Each pair is an exact phrase and its replacement (keep it within one line of the
 version. Use it for a typo caught after the PDF was exported - and fix the Word file too, so the next export
 does not need the patch.
 
+## Footnotes as hover text
+
+A superscript number (or * †) in the text that has a matching note - at the foot of the page or in a
+numbered list at the end - shows that note when the pointer rests on it, when it is tapped, or when it takes
+keyboard focus. Notes are found automatically: a line starting with the number, in sequence from 1 (or set
+smaller than the body text), followed by a capital, a quote or a web address. Nothing to set up.
+
 ## Links in the text
 
 The hyperlinks are read out of the `.docx` and laid onto the page text by phrase, so it does not matter whether
