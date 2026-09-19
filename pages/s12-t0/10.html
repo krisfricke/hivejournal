@@ -8,10 +8,20 @@ html,body{margin:0;padding:0;background:#fff}
 .scaler{transform:scale(calc(0.83291 * var(--k,1)));transform-origin:top left}
 .page{position:relative;width:953px;height:930px}
 .page img.bg{position:absolute;left:0;top:0;width:953px;height:930px}
-p{margin:0;position:absolute}
+p{margin:0;position:absolute;z-index:2}
 a{color:inherit}
 a:hover{text-decoration:underline}
 a.pic{position:absolute;display:block;z-index:4;cursor:zoom-in;border-radius:2px}
+video.pvid{position:absolute;display:block;z-index:4;object-fit:cover;border-radius:2px;background:#000}
+@media (prefers-reduced-motion:reduce){video.pvid{display:none}}
+svg.panim{position:absolute;display:block;z-index:1}   /* under the words, over the page art */
+@media (prefers-reduced-motion:reduce){svg.panim{display:none}}
+@keyframes anmFar{from{transform:translateX(-350px)}to{transform:translateX(0)}}
+@keyframes anmNear{from{transform:translateX(-350px)}to{transform:translateX(0)}}
+@keyframes anmPlod{0%,100%{transform:translateY(0)}50%{transform:translateY(-2.5px)}}
+svg.panim .sFar{animation:anmFar 30s linear infinite}
+svg.panim .sNear{animation:anmNear 13s linear infinite}
+svg.panim .plod{animation:anmPlod 1.5s ease-in-out infinite;transform-origin:center bottom}
 
 .fn{cursor:help;border-bottom:1px dotted rgba(0,0,0,.35)}
 .fn:hover,.fn:focus{outline:none;background:rgba(249,197,0,.28)}

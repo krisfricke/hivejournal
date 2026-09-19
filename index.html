@@ -264,6 +264,7 @@ body.hasopen .edge.stack{display:flex}
 .deck .top{position:relative;z-index:5;display:block;width:100%;height:100%;overflow:hidden;background:#fff;box-shadow:0 16px 44px rgba(0,0,0,.5);transition:transform .15s}
 .deck .top iframe{position:absolute;left:0;top:0;border:0;transform-origin:top left;background:#fff}  /* live: its links work, and it tells the parent about other clicks */
 .deck .top::after{content:'';position:absolute;inset:0;border:5px solid #fff;box-sizing:border-box;pointer-events:none;z-index:1}  /* the white rim the photo used to carry */
+.deck.framed .top::after{border-color:transparent}   /* no white rim on a framed entry's card */
 .arc:hover .deck .top{transform:translate(-2px,-2px)}
 /* the pages underneath: one white sheet per remaining page, each stepped a little right and down */
 .deck .sh{position:absolute;left:0;top:0;width:100%;height:100%;box-sizing:border-box;background:#fff;border:5px solid #fff;
@@ -277,6 +278,11 @@ body.hasopen .edge.stack{display:flex}
 .pframe{position:relative;display:inline-block;line-height:0}
 .pframe.htmlpage{height:86vh;aspect-ratio:210/297;overflow:hidden;background:#fff;box-shadow:0 10px 34px rgba(0,0,0,.45)}
 .pframe.htmlpage iframe{border:0;position:absolute;top:0;left:0;transform-origin:top left;background:#fff}
+.pframe.framed{overflow:visible;background:transparent;box-shadow:none;
+  filter:drop-shadow(0 10px 30px rgba(0,0,0,.45))}    /* the shadow follows the cut edge, not a rectangle */
+.pframe.framed iframe{background:transparent}         /* the page cuts its own paper back */
+.pframe .pfr{position:absolute;z-index:6;pointer-events:none;user-select:none;max-width:none;
+  border:0;box-shadow:none;background:none;cursor:default}   /* .cov img would otherwise give it a white rim */
 .rail{width:170px;flex:0 0 170px;padding-top:6px}
 .rail .pn{color:#47637a;font-size:11.5px;letter-spacing:.08em;margin-bottom:7px}
 .rail .ti{color:var(--ink);font-size:12.5px;font-weight:600;line-height:1.25;margin-bottom:4px}
@@ -481,10 +487,10 @@ body.hasopen .edge.stack{display:flex}
 const BASE='https://krisfricke.github.io/hivejournal/';                 /* where this will live on the web; used for share links */
 const HOME='https://emo-snal.livejournal.com/';                 /* west of here: the journal itself */
 const HOME_LABEL='emo_snal on LiveJournal';
-const UP_URL='https://therealljidol.dreamwidth.org/1222808.html';             /* north of the first entry: this week's topic post (or the poll) */
-const UP_LABEL='This week’s poll';
+const UP_URL='https://therealljidol.dreamwidth.org/1224892.html';             /* north of the first entry: this week's topic post (or the poll) */
+const UP_LABEL='This week’s topic';
 const DW_TAG='https://aggienaut.dreamwidth.org/tag/';        /* + the tag: every entry with that tag, on Dreamwidth */
-const ARTS=[{"id":"s12-t0","title":"Twenty Years of LJ Idol","vol":12,"topic":0,"year":2026,"month":9,"day":7,"tags":["introductions","lj idol"],"n":10,"mm":[210.02,297.01],"pmm":[[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,205.07]],"lj":"https://emo-snal.livejournal.com/455998.html","dw":"https://aggienaut.dreamwidth.org/847214.html"}];
+const ARTS=[{"id":"s12-t0","title":"Twenty Years of LJ Idol","vol":12,"topic":0,"year":2026,"month":9,"day":7,"tags":["introductions","lj idol"],"n":10,"mm":[210.02,297.01],"pmm":[[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,205.07]],"lj":"https://emo-snal.livejournal.com/455998.html","dw":"https://aggienaut.dreamwidth.org/847214.html","balloon":true},{"id":"s12-t1","title":"Journeys in Time","vol":12,"topic":1,"year":2026,"month":9,"day":16,"tags":["lj idol"],"n":6,"mm":[210.01,297.0],"pmm":[[210.01,297.0],[210.01,297.0],[210.01,297.0],[210.01,297.0],[210.01,199.6],[210.0,297.0]],"frame":{"img":"assets/frame-silkroad-v3.png","bleed":0,"clip":8,"skipLast":true},"balloon":false}];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 /* ---------- helpers ---------- */
@@ -582,12 +588,21 @@ const LANES={
   0:{sheet:'sheet', list:()=>ARTS, active:null, head:''},
   1:{sheet:'topsheet', hits:[], list(){return this.hits;}, active:null, head:''}
 };
+/* an illuminated border (entry "frame" in the metadata) is drawn here, in the shell, not in the page:
+   that lets it hang out past the paper by "bleed" mm, so its finials run off the edge instead of being cut */
+function frameImg(a,mm){
+  const f=a.frame; if(!f||!f.img) return '';
+  const b=+f.bleed||0, px=b/mm[0]*100, py=b/mm[1]*100;
+  return '<img class="pfr" src="'+esc(f.img)+'" alt="" aria-hidden="true" style="left:-'+px.toFixed(3)+'%;top:-'+py.toFixed(3)+
+         '%;width:'+(100+2*px).toFixed(3)+'%;height:'+(100+2*py).toFixed(3)+'%">';
+}
 function deck(a,extra){
   let sh=''; for(let i=extra;i>=1;i--) sh+='<div class="sh" style="--i:'+i+'"></div>';
-  return '<div class="deck" data-wmm="'+a.mm[0]+'" data-hmm="'+a.mm[1]+'" data-extra="'+extra+'">'+sh+
+  const fr='';   /* the stacked card shows the page plain - the border only appears once the entry is open */
+  return '<div class="deck'+(fr?' framed':'')+'" data-wmm="'+a.mm[0]+'" data-hmm="'+a.mm[1]+'" data-extra="'+extra+'">'+sh+
          /* the real page 1, same as the open view, so the words are text rather than pixels of text;
             inert (pointer-events:none, out of the tab order) - it is a picture of the page until opened */
-         '<div class="top"><iframe loading="lazy" src="pages/'+a.id+'/1.html" title="'+esc(a.title)+' — first page" tabindex="-1" aria-hidden="true"></iframe></div></div>';
+         '<div class="top"><iframe loading="lazy" src="pages/'+a.id+'/1.html" title="'+esc(a.title)+' — first page" tabindex="-1" aria-hidden="true"></iframe>'+fr+'</div></div>';
 }
 const q=v=>"'"+String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
 /* n=0: the stacked card (full details + Read); n=1: page 1 (full details); n>1: continuation (title + chips) */
@@ -614,9 +629,15 @@ function card(a,li){
 }
 function pageRow(a,n,li){
   const mm=(a.pmm&&a.pmm[n-1])||a.mm;          /* pages can differ in height: the last one is cut to its content */
-  return '<div class="pframe htmlpage" data-wmm="'+mm[0]+'" data-hmm="'+mm[1]+'" style="aspect-ratio:'+mm[0]+'/'+mm[1]+'">'+
-    '<iframe loading="lazy" title="'+esc(a.title)+' page '+n+'" src="pages/'+a.id+'/'+n+'.html"></iframe></div><div class="rail">'+railFor(a,n,li)+'</div>';
+  /* skipLast: the web-app page wears no border, so the game can fill the whole sheet */
+  const bare=a.frame&&a.frame.skipLast&&n===a.n;
+  const fr=bare?'':frameImg(a,mm);
+  return '<div class="pframe htmlpage'+(fr?' framed':'')+'" data-wmm="'+mm[0]+'" data-hmm="'+mm[1]+'" style="aspect-ratio:'+mm[0]+'/'+mm[1]+'">'+
+    '<iframe loading="lazy" title="'+esc(a.title)+' page '+n+'" src="pages/'+a.id+'/'+n+'.html"></iframe>'+fr+'</div><div class="rail">'+railFor(a,n,li)+'</div>';
 }
+/* the balloon is let go at the foot of ONE entry, not every entry: "balloon": true in the metadata */
+function balloonHere(){ const li=document.body.classList.contains('inlane')?1:0;
+  const a=byId(LANES[li].active); return !!(a && a.balloon); }
 function buildStack(li){ setTimeout(syncEdge,0);
   const L=LANES[li], s=document.getElementById(L.sheet); s.innerHTML=L.head||'';
   const order=sorted(L.list(),ORDER);
@@ -728,7 +749,7 @@ function jumpTo(id,p){ closeTopic(); if(LANES[0].active!==id){ LANES[0].active=i
     l.addEventListener('scroll',function(){
       const now=performance.now(), was=lastTop, cur=l.scrollTop; lastTop=cur; restAt=now;
       if(cur<=0 && was>0){ sheet.classList.remove('bounce-top'); void sheet.offsetWidth; sheet.classList.add('bounce-top'); }   /* arriving at the top */
-      if(cur+l.clientHeight>=l.scrollHeight-2 && was+l.clientHeight<l.scrollHeight-2){ sheet.classList.remove('bounce-end'); void sheet.offsetWidth; sheet.classList.add('bounce-end'); if(window.skyBalloon) skyBalloon(); }
+      if(cur+l.clientHeight>=l.scrollHeight-2 && was+l.clientHeight<l.scrollHeight-2){ sheet.classList.remove('bounce-end'); void sheet.offsetWidth; sheet.classList.add('bounce-end'); if(window.skyBalloon && balloonHere()) skyBalloon(); }
       if(pull) release();
     },{passive:true});
     l.addEventListener('wheel',function(e){
@@ -1068,7 +1089,7 @@ function picTick(){
   for(let i=0;i<8;i++){ const g=goal(); bees.push({x:R()*W,y:H*.08+R()*H*.75,h:R()*TAU,sp:1.2+R()*.7,hov:0,wing:0,dark:(R()<.5),gx:g.x,gy:g.y}); }   /* ~40-60 px/s, each on its way somewhere */
   /* butterflies: one at a time, rarely, crossing the width on a slow sine and gone */
   let nextFly=performance.now()+15000+R()*30000;
-  /* the balloon: pale pink, let go at the foot of the last page; rises with a sway on a wavy string */
+  /* the balloon: pale pink, let go at the foot of an entry marked "balloon"; rises with a sway on a wavy string */
   let balloon=null;
   window.skyBalloon=function(){ if(balloon) return; balloon={x:W*.3+R()*W*.4,y:H+50,ph:R()*TAU,sp:1.3+R()*.5,t0:performance.now()}; start(); };
   function drawBalloon(b,t){

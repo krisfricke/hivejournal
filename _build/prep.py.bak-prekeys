@@ -55,14 +55,12 @@ def trim_last(d,pad=64):
     p.set_cropbox(fitz.Rect(p.cropbox.x0,p.cropbox.y0,p.cropbox.x0+W,p.cropbox.y0+newH))
     return newH
 
-def frame(pdf_in,pdf_out,trim=True,skip_rule=False):
-    """skip_rule: the entry wears an illuminated border, so the plain beeswax rule would
-    only show through as a stray orange line inside it."""
+def frame(pdf_in,pdf_out,trim=True):
     d=fitz.open(pdf_in)
     cut=trim_last(d) if trim else None
     if cut: print('   last page trimmed to %.0f pt (%.0f mm)'%(cut,cut/72*25.4))
     ins=cfg['frame_inset_mm']/25.4*72; w=cfg['frame_width_pt']; col=hexrgb(cfg['frame_color'])
-    for p in (() if skip_rule else d):
+    for p in d:
         r=p.rect
         sh=p.new_shape(); sh.draw_rect(fitz.Rect(r.x0+ins,r.y0+ins,r.x1-ins,r.y1-ins))
         sh.finish(color=col,width=w,fill=None); sh.commit(overlay=False)      # behind everything already on the page
@@ -84,7 +82,7 @@ def run(entry):
     else:
         subprocess.run([SOFFICE,'--headless','--convert-to','pdf','--outdir',tmp,src],check=True,capture_output=True)
         raw=os.path.join(tmp,os.path.splitext(os.path.basename(src))[0]+'.pdf'); how='LibreOffice render of the .docx'
-    out=os.path.join(site,'_pdf',eid+'.pdf'); frame(raw,out,trim=entry.get('trim_last',True),skip_rule=bool(entry.get('frame'))); shutil.rmtree(tmp,ignore_errors=True)
+    out=os.path.join(site,'_pdf',eid+'.pdf'); frame(raw,out,trim=entry.get('trim_last',True)); shutil.rmtree(tmp,ignore_errors=True)
     # pictures: docx order, matched to the PDF's images by pixel size (LibreOffice keeps them as they were)
     z,pics=docx_pictures(src)
     pdir=os.path.join(site,'pages',eid); os.makedirs(pdir,exist_ok=True)
@@ -102,12 +100,7 @@ def run(entry):
             al=prev['alt']                        # a hand-edited screen-reader text survives rebuilds
         else:
             al=alt or hv                          # otherwise Word's, else the previous build's
-        entry={'file':fn,'media':media,'w':w,'h':h,'hover':hv,'alt':al}
-        # anything else hand-added to this picture - "video"/"webm" for a looping video, "anim"/"phase"/
-        # "terrain" for an animated scene - is the author's, not ours: carry it through the rebuild.
-        for key,val in prev.items():
-            if key not in entry: entry[key]=val
-        rec.append(entry)
+        rec.append({'file':fn,'media':media,'w':w,'h':h,'hover':hv,'alt':al})
     json.dump(rec,open(jpath,'w'),indent=1,ensure_ascii=False)
     d=fitz.open(out); n=d.page_count; W,H=d[0].rect.width,d[0].rect.height; d.close()
     print('%-10s %2d pages  %d pictures  -> %s   (%s)'%(eid,n,len(rec),os.path.relpath(out,site),how))

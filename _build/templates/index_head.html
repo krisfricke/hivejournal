@@ -264,6 +264,7 @@ body.hasopen .edge.stack{display:flex}
 .deck .top{position:relative;z-index:5;display:block;width:100%;height:100%;overflow:hidden;background:#fff;box-shadow:0 16px 44px rgba(0,0,0,.5);transition:transform .15s}
 .deck .top iframe{position:absolute;left:0;top:0;border:0;transform-origin:top left;background:#fff}  /* live: its links work, and it tells the parent about other clicks */
 .deck .top::after{content:'';position:absolute;inset:0;border:5px solid #fff;box-sizing:border-box;pointer-events:none;z-index:1}  /* the white rim the photo used to carry */
+.deck.framed .top::after{border-color:transparent}   /* no white rim on a framed entry's card */
 .arc:hover .deck .top{transform:translate(-2px,-2px)}
 /* the pages underneath: one white sheet per remaining page, each stepped a little right and down */
 .deck .sh{position:absolute;left:0;top:0;width:100%;height:100%;box-sizing:border-box;background:#fff;border:5px solid #fff;
@@ -277,6 +278,11 @@ body.hasopen .edge.stack{display:flex}
 .pframe{position:relative;display:inline-block;line-height:0}
 .pframe.htmlpage{height:86vh;aspect-ratio:210/297;overflow:hidden;background:#fff;box-shadow:0 10px 34px rgba(0,0,0,.45)}
 .pframe.htmlpage iframe{border:0;position:absolute;top:0;left:0;transform-origin:top left;background:#fff}
+.pframe.framed{overflow:visible;background:transparent;box-shadow:none;
+  filter:drop-shadow(0 10px 30px rgba(0,0,0,.45))}    /* the shadow follows the cut edge, not a rectangle */
+.pframe.framed iframe{background:transparent}         /* the page cuts its own paper back */
+.pframe .pfr{position:absolute;z-index:6;pointer-events:none;user-select:none;max-width:none;
+  border:0;box-shadow:none;background:none;cursor:default}   /* .cov img would otherwise give it a white rim */
 .rail{width:170px;flex:0 0 170px;padding-top:6px}
 .rail .pn{color:#47637a;font-size:11.5px;letter-spacing:.08em;margin-bottom:7px}
 .rail .ti{color:var(--ink);font-size:12.5px;font-weight:600;line-height:1.25;margin-bottom:4px}

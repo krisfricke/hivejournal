@@ -138,3 +138,89 @@ a butterfly now and then, and a pink balloon let go at the foot of the last page
 - Top bar: Read on LiveJournal / Dreamwidth (follow the open entry), Portfolio (`portfolio`)
 - Comment, at the foot of every page: opens into LiveJournal / Dreamwidth (`lj` and `dw` in the entry's metadata),
   shown with the two sites' own favicons
+
+
+## A looping video on a page
+
+The reader can lay a muted, looping video exactly over a picture in the Word layout (the picture becomes
+the poster frame). Put a still from the video into the Word document where the video should play, build
+as usual, then in `_pics/<id>.json` add to that picture's entry:
+
+        "video": "../../assets/silkroad_loop.mp4"      path relative to pages/<id>/
+        "webm":  "../../assets/silkroad_loop.webm"     optional second source
+
+and rebuild. It autoplays silently and loops; readers with *reduce motion* set see the still instead.
+`assets/silkroad_loop.mp4` (72 s, 1120x720, H.264) is the Silk Road caravan loop Samarkand -> Andijan ->
+Kashgar -> Badakhshan -> Balkh -> Samarkand; `assets/silkroad_loop_poster.jpg` is its first frame.
+
+## An illuminated border round an entry
+
+An entry can wear a decorative border. Put a PNG with a transparent centre into `assets/`, then in
+`_entries_meta.json` add to that entry:
+
+        "frame": {"img": "assets/frame-silkroad.png", "bleed": 10}
+
+The border is drawn **by the reader, not by the page**: it sits over each page in the reader and is allowed to
+hang out past the paper by `bleed` mm, so its finials, gems and corner lions run off the edge into the sky
+rather than being cut at the trim. (A border drawn inside a page document could only ever be clipped at the
+paper's edge, which is why it lives in the shell.) It also covers the web-app page: there the game fills the
+whole paper and a small pill in the bottom-right corner carries the "in its own window" link.
+
+**Sizing it.** The text block is 25.4 mm in from the paper edge. Nothing opaque in the artwork may reach
+further in than that once bled — and corner cartouches always reach further than the straight runs, so
+measure the corners. To check a candidate: composite it over a page at the intended bleed and find the
+smallest uniform margin whose inner rectangle contains no opaque pixel. `frame-silkroad.png` needs 30.5 mm
+unbled and 23.5 mm at `bleed: 10`, which is what makes 10 the right number for it.
+
+Because the border is the reader's, it does not appear in the standalone page files or the text version.
+
+## Pictures that should not enlarge
+
+A picture the reader would otherwise offer to grow (its file is bigger than it appears) can opt out - a
+screenshot, say, where there is nothing more to see. In `_pics/<id>.json`:
+
+        "noenlarge": true
+
+Hand-added keys in that file (`video`, `webm`, `anim`, `phase`, `terrain`, `noenlarge`) survive rebuilds.
+
+## An animated scene on a page
+
+Instead of a video, a picture can be replaced by a live SVG scene drawn by the build. It stays crisp at
+any zoom (a video softens), weighs a few KB rather than megabytes, and needs no media files at all.
+
+Put a still where the scene should play in the Word document, build once, then in `_pics/<id>.json` add
+to that picture's entry:
+
+        "anim":    "caravan"      the scene; "caravan" is the Silk Road journeyScene
+        "phase":   0              0 day, 1 dusk, 2 night, 3 dawn        (optional)
+        "terrain": "desert"       settled | steppe | desert | harsh | mountain | rugged   (optional)
+
+and rebuild. The scene is laid exactly over the still, sized to the same box, and cropped to fill it
+(`xMidYMid slice`), so it works whatever shape the picture is. It sits **above the page art and below the
+words**, so a title printed over the picture in Word still reads on top of the animation. Readers with
+*reduce motion* set see the original still instead — the picture is still there in the page art underneath.
+
+To add another scene, write a function returning one `<svg class="panim">` and register it in `ANIMS` at
+the foot of `_build/buildpages.py`. Keep any `id` you use suffixed with the `uid` argument: two scenes can
+share a page and duplicate ids would cross-wire their gradients.
+
+## A web app as the last page
+
+An entry can end on a page that *is* a live web page - the Silk Road game, playable in the reader. Add to the
+entry in `_entries_meta.json`:
+
+        "app": {
+         "url":   "https://krisfricke.github.io/Silk-Road/",     what the page shows (add ?start=lji for the #LJI setting)
+         "title": "The Silk Road",                               named in the page's top bar and the text version
+         "note":  "play it here, or open it in its own window",  optional, italic, in the top bar
+         "wmm": 210, "hmm": 297                                  optional page size; default A4 portrait
+        }
+
+and build as usual. The build appends one more page after the PDF's pages: the beeswax frame drawn in CSS at
+the same inset, a top bar with the folio slug, the note, an "in its own window" link and the page number, and
+the app filling the rest. It counts in the page total ("PAGE 11 / 11") and the text version ends with a
+"Play ..." link. The app is loaded lazily, only when the reader scrolls down to it, and it keeps its own
+saved games and leaderboard because it runs from its own site. Two things to know: the reader's cat cursor
+stops at the app's edge (the pointer inside it belongs to the app), and the app's own scrolling takes the
+wheel first - the page scrolls on once the app is at the end of what it can show.
+

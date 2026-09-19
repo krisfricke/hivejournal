@@ -1,0 +1,46 @@
+[
+ {
+  "file": "pic1.png",
+  "media": "image1.png",
+  "w": 776,
+  "h": 177,
+  "hover": "The image depicts a serene desert landscape with three camels silhouetted against a backdrop of a clear blue sky and a setting sun.\n\nAI-generated content may be incorrect.",
+  "alt": "The image depicts a serene desert landscape with three camels silhouetted against a backdrop of a clear blue sky and a setting sun.\n\nAI-generated content may be incorrect.",
+  "anim": "caravan",
+  "phase": 0,
+  "terrain": "desert"
+ },
+ {
+  "file": "pic2.png",
+  "media": "image2.png",
+  "w": 812,
+  "h": 500,
+  "hover": "An image from the classic Oregon Trail informing the player they have died of dysentery",
+  "alt": "An image from the classic Oregon Trail informing the player they have died of dysentery",
+  "noenlarge": true
+ },
+ {
+  "file": "pic3.jpg",
+  "media": "image3.jpeg",
+  "w": 835,
+  "h": 1186,
+  "hover": "Every journey begins somewhere: Marco Polo’s house in Venice, from G. Pauthier (ed.), Le Livre de Marco Polo, citoyen de Venise, conseiller privé et commissaire impérial de Khoubilaï-Khaân (Paris: Librairie de Firmin Didot Frères, 1865)",
+  "alt": "An engraving of Marco Polo’s house in Venice: a narrow cobbled street lined with Renaissance-style buildings with ornate facades, a few figures strolling by."
+ },
+ {
+  "file": "pic4.jpg",
+  "media": "image4.jpeg",
+  "w": 1200,
+  "h": 675,
+  "hover": "The ruined city of Ani",
+  "alt": "The ruined city of Ani: a lone red-stone church with a conical dome standing alone on open grassland, tumbled masonry in the foreground, snow-streaked mountains behind."
+ },
+ {
+  "file": "pic5.jpg",
+  "media": "image5.jpeg",
+  "w": 1694,
+  "h": 622,
+  "hover": "The Tar River Valley, in which lies the village of Kenesh and the Silk Road route to cross the Tian Shan mountains at Terek Pass",
+  "alt": "A vast, misty landscape with a river flowing through undulating green fields, flanked by mountains under a cloudy sky."
+ }
+]

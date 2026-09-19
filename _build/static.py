@@ -144,6 +144,9 @@ for a in ordered:
                 out.append(h[pos:s0]); out.append('<a href="%s">%s</a>'%(E(spec['url']),h[s0:e0])); pos=e0
             out.append(h[pos:]); h=''.join(out)
             parts.append(('<h2>%s</h2>' if kind=='h' else '<p>%s</p>')%h)
+    if a.get('app') and a['app'].get('url'):
+        parts.append('<div class="pg">Page %d of %d</div>'%(a['n'],a['n']))
+        parts.append('<p><a class="btn" href="%s" rel="noopener">%s</a>%s</p>'%(E(a['app']['url']),E('Play '+a['app'].get('title','the game')),(' &mdash; '+E(a['app']['note'])) if a['app'].get('note') else ''))
     miss=[x for x in manual if not x.get('_done')]
     if miss: print('   text version: %d link phrase(s) not matched: %s'%(len(miss),'; '.join(repr(x['text'][:40]) for x in miss[:5])))
     if tj.get('links'):

@@ -23,7 +23,6 @@ PT_MM = 25.4 / 72.0
 MARGIN = 72.0          # the Word file's side margins, in points: the folio aligns to them
 FOLIO_BASE = 46.0      # folio baseline, points up from the foot of the page
 PICS = []; PICPOS = []; FOLIO_SLUG = ''; FOLIO_COLOR = '#228B22'; COMMENT = {}
-FRAME = ''      # an illuminated border laid over every page of this entry (see README)
 CORR = []   # [old, new] text corrections for the current entry, from _corrections.json (typos caught after the PDF was made)
 
 SERIF_HINTS = ('times', 'liberationserif', 'liberation serif', 'dejavuserif', 'palatino', 'georgia', 'garamond', 'minion', 'book antiqua', 'palladio',
@@ -320,23 +319,7 @@ def build_page(doc, pno, outdir, n, title, links_out, manual=(), ocr=False):
                                 (' title="%s"' % html.escape(hover, quote=True)) if hover else '',
                                 ' aria-hidden="true"' if deco else ' aria-label="%s"' % html.escape(alt, quote=True), srcs))
             continue
-        # AN ANIMATED SCENE: give a picture entry in _pics/<id>.json an "anim" key naming a scene
-        # ("caravan"), with optional "phase" (0 day, 1 dusk, 2 night, 3 dawn) and "terrain". The Word
-        # still stays in the page art underneath, so reduce-motion readers see the picture instead.
-        if p.get('anim'):
-            mk = ANIMS.get(p['anim'])
-            if not mk:
-                print('   page %d: no animated scene called "%s" - leaving the still' % (n, p['anim']))
-            else:
-                extra = ((' title="%s"' % html.escape(hover, quote=True)) if hover else '') + \
-                        (' aria-hidden="true"' if (deco or not alt) else
-                         ' role="img" aria-label="%s"' % html.escape(alt, quote=True))
-                pics_html.append(mk('%s_p%d' % (p['file'].split('.')[0], n),
-                                    r.x0 * SCALE, r.y0 * SCALE, r.width * SCALE, r.height * SCALE,
-                                    extra, p.get('phase', 0), p.get('terrain', 'desert')))
-                continue
         if p['w'] < 1.25 * r.width * SCALE: continue      # shown at (near) full size already: nothing to grow into
-        if p.get('noenlarge'): continue                # "noenlarge": true in _pics/<id>.json - nothing worth growing into
         pics_html.append('<a class="pic" data-src="%s" data-nw="%d" data-nh="%d" '
                          'style="left:%.1fpx;top:%.1fpx;width:%.1fpx;height:%.1fpx"%s%s></a>'
                          % (p['file'], p['w'], p['h'], r.x0 * SCALE, r.y0 * SCALE, r.width * SCALE, r.height * SCALE,
@@ -364,17 +347,7 @@ def build_page(doc, pno, outdir, n, title, links_out, manual=(), ocr=False):
     scaler = (wmm * 96 / 25.4) / pw
     doc_html = HEAD % dict(title=html.escape(title), n=n, wmm=wmm, hmm=hmm, scaler=scaler, pw=pw, ph=ph, fcol=FOLIO_COLOR)
     if ocr: doc_html = doc_html.replace('p{margin:0;position:absolute}', 'p{margin:0;position:absolute;color:transparent}\np::selection,p *::selection{background:rgba(249,197,0,.45);color:transparent}')
-    frame_html = ''   # the illuminated border is drawn by the reader shell, over and beyond the paper
-    # With a border, the paper is cut back to a rectangle that sits UNDER the ornament, so where the
-    # ornament's outline is ragged the reader's sky shows through instead of a white corner. The inset
-    # is a percentage so it survives the page being scaled to any size.
-    if FRAME:
-        clip = 8.0 if isinstance(FRAME, str) else float((FRAME or {}).get('clip', 8))
-        doc_html = doc_html.replace('</style>',
-            'html,body{background:transparent;overflow:hidden}\n.sheet{background:transparent}\n'
-            '.page{background:#fff;clip-path:inset(%.3f%% %.3f%%)}\n</style>'
-            % (clip / hmm * 100, clip / wmm * 100), 1)
-    doc_html += ('<img class="bg" src="p%d.jpg" alt="">\n' % n + frame_html + '\n'.join(lines_html)
+    doc_html += ('<img class="bg" src="p%d.jpg" alt="">\n' % n + '\n'.join(lines_html)
                  + ('\n' + '\n'.join(pics_html) if pics_html else '') + '\n' + folio
                  + '\n</div></div></div>\n' + TAIL)
     open(os.path.join(outdir, '%d.html' % n), 'w', encoding='utf-8').write(doc_html)
@@ -487,20 +460,12 @@ html,body{margin:0;padding:0;background:#fff}
 .scaler{transform:scale(calc(%(scaler).5f * var(--k,1)));transform-origin:top left}
 .page{position:relative;width:%(pw)dpx;height:%(ph)dpx}
 .page img.bg{position:absolute;left:0;top:0;width:%(pw)dpx;height:%(ph)dpx}
-p{margin:0;position:absolute;z-index:2}
+p{margin:0;position:absolute}
 a{color:inherit}
 a:hover{text-decoration:underline}
 a.pic{position:absolute;display:block;z-index:4;cursor:zoom-in;border-radius:2px}
 video.pvid{position:absolute;display:block;z-index:4;object-fit:cover;border-radius:2px;background:#000}
 @media (prefers-reduced-motion:reduce){video.pvid{display:none}}
-svg.panim{position:absolute;display:block;z-index:1}   /* under the words, over the page art */
-@media (prefers-reduced-motion:reduce){svg.panim{display:none}}
-@keyframes anmFar{from{transform:translateX(-350px)}to{transform:translateX(0)}}
-@keyframes anmNear{from{transform:translateX(-350px)}to{transform:translateX(0)}}
-@keyframes anmPlod{0%%,100%%{transform:translateY(0)}50%%{transform:translateY(-2.5px)}}
-svg.panim .sFar{animation:anmFar 30s linear infinite}
-svg.panim .sNear{animation:anmNear 13s linear infinite}
-svg.panim .plod{animation:anmPlod 1.5s ease-in-out infinite;transform-origin:center bottom}
 '''+_notes.CSS+'''
 /* one pulse as the pointer arrives - a ring that swells and fades - to say 'this one opens'; nothing more until a click */
 a.pic.pulse{animation:picpulse .8s ease-out 1}
@@ -659,65 +624,6 @@ def build_entry(pdf_path, outdir, title, manual=(), docx=None):
     return doc_count(pdf_path), (W * PT_MM, H * PT_MM)
 def doc_count(p): d = fitz.open(p); n = d.page_count; d.close(); return n
 
-# ---- AN ANIMATED SCENE LAID OVER A PICTURE ----------------------------------------------------
-# The still in the Word layout is the poster; a live SVG is laid exactly over it. Vector, so it stays
-# crisp at any zoom the reader offers, a few KB rather than a video file, and it works from a folder.
-# The scene below is the caravan from The Silk Road (journeyScene), kept faithful to the original.
-ANIM_SKY = [
-    {'t': '#aac4dc', 'b': '#ead9b3', 'sun': 1,   'moon': 0,  'star': 0, 'veil': 0},      # 0 day
-    {'t': '#d98e54', 'b': '#b04a2e', 'sun': .55, 'moon': 0,  'star': 0, 'veil': .12},    # 1 dusk
-    {'t': '#16203c', 'b': '#2c2746', 'sun': 0,   'moon': 1,  'star': 1, 'veil': .5},     # 2 night
-    {'t': '#caa0a8', 'b': '#e6c39a', 'sun': .35, 'moon': .3, 'star': 0, 'veil': .1},     # 3 dawn
-]
-ANIM_GROUND = {'settled': '#6a5630', 'steppe': '#5a6a3a', 'desert': '#8a6638',
-               'harsh': '#7a5630', 'mountain': '#544c40', 'rugged': '#6a5a44'}
-
-def _camel(dx, delay):
-    return ('<g transform="translate(%g,0)"><g class="plod" style="animation-delay:%gs">'
-            '<rect x="6" y="24" width="2.6" height="16" fill="#241a12"/><rect x="13" y="24" width="2.6" height="16" fill="#241a12"/>'
-            '<rect x="31" y="24" width="2.6" height="16" fill="#241a12"/><rect x="38" y="24" width="2.6" height="16" fill="#241a12"/>'
-            '<ellipse cx="23" cy="22" rx="17" ry="8" fill="#34261a"/>'
-            '<ellipse cx="17" cy="14" rx="6" ry="7" fill="#34261a"/><ellipse cx="29" cy="14" rx="6" ry="7" fill="#34261a"/>'
-            '<path d="M7 19 C0 17 -1 8 -1 4 L-4 4 C-4 11 -3 19 3 23 Z" fill="#34261a"/>'
-            '<ellipse cx="-3" cy="4" rx="3.4" ry="2.6" fill="#34261a"/>'
-            '<rect x="-8" y="3" width="4" height="2.4" rx="1" fill="#34261a"/>'
-            '</g></g>') % (dx, delay)
-
-def caravan_svg(uid, x, y, w, h, extra, phase=0, terrain='desert'):
-    p = ANIM_SKY[int(phase) % len(ANIM_SKY)]
-    gc = ANIM_GROUND.get(terrain, ANIM_GROUND['desert'])
-    farp = 'M0 200 L0 150 Q60 124 120 146 Q190 170 260 140 Q320 120 350 144 L350 200 Z'
-    nearp = 'M0 200 L0 168 Q70 144 150 166 Q230 186 300 160 Q345 148 350 166 L350 200 Z'
-    # three copies of the dune band, 350 apart, so sliding it 350px left loops seamlessly
-    def tile(d, op=''):
-        return ''.join('<path d="' + d + '"' + t + ' fill="' + gc + '"' + op + '/>'
-                       for t in ('', ' transform="translate(350,0)"', ' transform="translate(700,0)"'))
-    stars = ''.join('<circle cx="%d" cy="%d" r="%s" fill="#fff"/>'
-                    % ((i * 53) % 690 + 5, (i * 37) % 90 + 8, '.8' if i % 3 else '1.3') for i in range(26))
-    gid = 'sky_' + uid          # ids must be unique: two scenes could share a page
-    drover = ('<g class="plod" style="animation-delay:.25s">'
-              '<ellipse cx="0" cy="8" rx="3.2" ry="4" fill="#241a12"/>'
-              '<rect x="-2.4" y="11" width="4.8" height="15" rx="1.5" fill="#241a12"/>'
-              '<rect x="-2.4" y="25" width="2.2" height="11" fill="#241a12"/>'
-              '<rect x="0.4" y="25" width="2.2" height="11" fill="#241a12"/></g>')
-    return ('<svg class="panim" viewBox="0 0 700 200" preserveAspectRatio="xMidYMid slice" '
-            'style="left:%.1fpx;top:%.1fpx;width:%.1fpx;height:%.1fpx"%s>'
-            '<defs><linearGradient id="%s" x1="0" y1="0" x2="0" y2="1">'
-            '<stop offset="0" stop-color="%s"/><stop offset="1" stop-color="%s"/></linearGradient></defs>'
-            '<rect width="700" height="200" fill="url(#%s)"/>'
-            '<g opacity="%s">%s</g>'
-            '<circle cx="585" cy="46" r="22" fill="#ffe6a0" opacity="%s"/>'
-            '<g opacity="%s"><circle cx="585" cy="46" r="17" fill="#e8ecf5"/>'
-            '<circle cx="592" cy="42" r="14" fill="url(#%s)"/></g>'
-            '<g class="sFar">%s</g><g class="sNear">%s</g>'
-            '<g transform="translate(250,120) scale(.95)">%s%s%s%s</g>'
-            '<rect width="700" height="200" fill="#0a1226" opacity="%s"/></svg>'
-            % (x, y, w, h, extra, gid, p['t'], p['b'], gid, p['star'], stars, p['sun'], p['moon'], gid,
-               tile(farp, ' opacity=".55"'), tile(nearp),
-               _camel(148, .18), _camel(92, .5), _camel(36, 0), drover, p['veil']))
-
-ANIMS = {'caravan': caravan_svg}
-
 APP_HTML = """<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>%(title)s &mdash; page %(n)d: %(app)s</title>
@@ -734,23 +640,12 @@ html,body{margin:0;padding:0;background:#fff;height:100%%;overflow:hidden}
 .bar a:hover{text-decoration:underline}
 .bar .fr{letter-spacing:0;font-variant:normal}
 iframe.app{flex:1 1 auto;width:100%%;min-height:0;border:0;background:#000;display:block}
-/* with an illuminated border the game fills the paper and this pill sits in the border's clear centre */
-.pill{position:absolute;right:%(pillin).1fmm;bottom:%(pillin).1fmm;z-index:9;font:12px/1 'Liberation Serif','Times New Roman',serif;
-  background:rgba(255,253,245,.82);color:#3a2a10;border:1px solid rgba(58,42,16,.35);border-radius:14px;padding:6px 11px;
-  text-decoration:none;backdrop-filter:blur(2px);opacity:.75;transition:opacity .15s}
-.pill:hover{opacity:1}
-.pill b{font-weight:400;opacity:.6;margin-left:8px}
 </style></head><body>
 <div class="sheet"><div class="frame">
-%(top)s
+<div class="bar"><span class="fl">%(slug)s</span><span class="mid">%(note)s</span><a href="%(url)s" target="_blank" rel="noopener" title="Open %(app)s in its own tab">%(app)s in its own window &#x2197;</a><span class="fr">%(n)d</span></div>
 <iframe class="app" src="%(url)s" title="%(app)s" allow="fullscreen; autoplay" loading="lazy"></iframe>
-</div>%(pill)s</div>
-<script>
-/* opened from a folder, the hosted game is not reachable offline - swap in the local copy */
-(function(){ var L=%(local)s; if(L && location.protocol==='file:'){
-  var f=document.querySelector('iframe.app'); if(f) f.src=L;
-  var a=document.querySelector('.pill,.bar a'); if(a) a.href=L; } })();
-try{ parent.postMessage({abj:'hello'},'*'); }catch(e){}
+</div></div>
+<script>try{ parent.postMessage({abj:'hello'},'*'); }catch(e){}
 document.addEventListener('mousedown',function(){ try{ parent.postMessage({abj:'click'},'*'); }catch(e){} });</script>
 </body></html>
 """
@@ -758,23 +653,9 @@ def build_app_page(outdir, n, title, app, cfg):
     """An extra last page that is a live web app (the Silk Road game, say) in an iframe, framed like the others.
     app = {"url": ..., "title": ..., "note": ..., "wmm": 210, "hmm": 297}; returns [wmm, hmm]."""
     wmm = float(app.get('wmm', 210)); hmm = float(app.get('hmm', 297))
-    framed = bool(FRAME)
-    bar = ('<div class="bar"><span class="fl">%(slug)s</span><span class="mid">%(note)s</span>'
-           '<a href="%(url)s" target="_blank" rel="noopener" title="Open %(app)s in its own tab">%(app)s in its own window &#x2197;</a>'
-           '<span class="fr">%(n)d</span></div>')
-    pill = ('<a class="pill" href="%(url)s" target="_blank" rel="noopener" title="Open %(app)s in its own tab">'
-            '%(app)s in its own window &#x2197;<b>%(n)d</b></a>')
-    vals = dict(title=html.escape(title), n=n, app=html.escape(app.get('title', 'the game')), note=html.escape(app.get('note', '')),
-                url=html.escape(app['url'], quote=True), slug=html.escape(FOLIO_SLUG), fcol=FOLIO_COLOR,
-                inset=0.0 if framed else float(cfg.get('frame_inset_mm', 10)),
-                fw=0.0 if framed else float(cfg.get('frame_width_pt', 1.5)),
-                pillin=float(cfg.get('frame_clear_mm', 26)),
-                local=json.dumps(app.get('localUrl','')))
-    vals['top'] = '' if framed else bar % vals
-    vals['pill'] = (pill % vals) if framed else ''
-    h_extra = 'html,body{overflow:hidden}'   # the border is skipped on this page, so no clip either
-    h = APP_HTML % vals
-    if framed: h = h.replace('</style>', h_extra + '\n</style>', 1)
+    h = APP_HTML % dict(title=html.escape(title), n=n, app=html.escape(app.get('title', 'the game')), note=html.escape(app.get('note', '')),
+                        url=html.escape(app['url'], quote=True), slug=html.escape(FOLIO_SLUG), fcol=FOLIO_COLOR,
+                        inset=float(cfg.get('frame_inset_mm', 10)), fw=float(cfg.get('frame_width_pt', 1.5)))
     open(os.path.join(outdir, '%d.html' % n), 'w', encoding='utf-8').write(h)
     return [round(wmm, 2), round(hmm, 2)]
 
@@ -794,7 +675,6 @@ if __name__ == '__main__':
         FOLIO_SLUG = '%s · Vol. %s · Topic %s' % (cfg.get('folio_prefix', 'LJI'), a['vol'], a['topic'])
         FOLIO_COLOR = cfg.get('frame_color', '#228B22')
         COMMENT = {'lj': a.get('lj'), 'dw': a.get('dw')}
-        FRAME = a.get('frame', '')     # e.g. "../../assets/frame-silkroad.png"
         CORR = corrections.get(a['id'], [])
         out = os.path.join(site, 'pages', a['id'])
         n, mm = build_entry(pdf, out, a['title'], a.get('links', ()), os.path.join(site, '_src', a['src']))

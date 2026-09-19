@@ -104,12 +104,21 @@ const LANES={
   0:{sheet:'sheet', list:()=>ARTS, active:null, head:''},
   1:{sheet:'topsheet', hits:[], list(){return this.hits;}, active:null, head:''}
 };
+/* an illuminated border (entry "frame" in the metadata) is drawn here, in the shell, not in the page:
+   that lets it hang out past the paper by "bleed" mm, so its finials run off the edge instead of being cut */
+function frameImg(a,mm){
+  const f=a.frame; if(!f||!f.img) return '';
+  const b=+f.bleed||0, px=b/mm[0]*100, py=b/mm[1]*100;
+  return '<img class="pfr" src="'+esc(f.img)+'" alt="" aria-hidden="true" style="left:-'+px.toFixed(3)+'%;top:-'+py.toFixed(3)+
+         '%;width:'+(100+2*px).toFixed(3)+'%;height:'+(100+2*py).toFixed(3)+'%">';
+}
 function deck(a,extra){
   let sh=''; for(let i=extra;i>=1;i--) sh+='<div class="sh" style="--i:'+i+'"></div>';
-  return '<div class="deck" data-wmm="'+a.mm[0]+'" data-hmm="'+a.mm[1]+'" data-extra="'+extra+'">'+sh+
+  const fr='';   /* the stacked card shows the page plain - the border only appears once the entry is open */
+  return '<div class="deck'+(fr?' framed':'')+'" data-wmm="'+a.mm[0]+'" data-hmm="'+a.mm[1]+'" data-extra="'+extra+'">'+sh+
          /* the real page 1, same as the open view, so the words are text rather than pixels of text;
             inert (pointer-events:none, out of the tab order) - it is a picture of the page until opened */
-         '<div class="top"><iframe loading="lazy" src="pages/'+a.id+'/1.html" title="'+esc(a.title)+' — first page" tabindex="-1" aria-hidden="true"></iframe></div></div>';
+         '<div class="top"><iframe loading="lazy" src="pages/'+a.id+'/1.html" title="'+esc(a.title)+' — first page" tabindex="-1" aria-hidden="true"></iframe>'+fr+'</div></div>';
 }
 const q=v=>"'"+String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'")+"'";
 /* n=0: the stacked card (full details + Read); n=1: page 1 (full details); n>1: continuation (title + chips) */
@@ -136,9 +145,15 @@ function card(a,li){
 }
 function pageRow(a,n,li){
   const mm=(a.pmm&&a.pmm[n-1])||a.mm;          /* pages can differ in height: the last one is cut to its content */
-  return '<div class="pframe htmlpage" data-wmm="'+mm[0]+'" data-hmm="'+mm[1]+'" style="aspect-ratio:'+mm[0]+'/'+mm[1]+'">'+
-    '<iframe loading="lazy" title="'+esc(a.title)+' page '+n+'" src="pages/'+a.id+'/'+n+'.html"></iframe></div><div class="rail">'+railFor(a,n,li)+'</div>';
+  /* skipLast: the web-app page wears no border, so the game can fill the whole sheet */
+  const bare=a.frame&&a.frame.skipLast&&n===a.n;
+  const fr=bare?'':frameImg(a,mm);
+  return '<div class="pframe htmlpage'+(fr?' framed':'')+'" data-wmm="'+mm[0]+'" data-hmm="'+mm[1]+'" style="aspect-ratio:'+mm[0]+'/'+mm[1]+'">'+
+    '<iframe loading="lazy" title="'+esc(a.title)+' page '+n+'" src="pages/'+a.id+'/'+n+'.html"></iframe>'+fr+'</div><div class="rail">'+railFor(a,n,li)+'</div>';
 }
+/* the balloon is let go at the foot of ONE entry, not every entry: "balloon": true in the metadata */
+function balloonHere(){ const li=document.body.classList.contains('inlane')?1:0;
+  const a=byId(LANES[li].active); return !!(a && a.balloon); }
 function buildStack(li){ setTimeout(syncEdge,0);
   const L=LANES[li], s=document.getElementById(L.sheet); s.innerHTML=L.head||'';
   const order=sorted(L.list(),ORDER);
@@ -250,7 +265,7 @@ function jumpTo(id,p){ closeTopic(); if(LANES[0].active!==id){ LANES[0].active=i
     l.addEventListener('scroll',function(){
       const now=performance.now(), was=lastTop, cur=l.scrollTop; lastTop=cur; restAt=now;
       if(cur<=0 && was>0){ sheet.classList.remove('bounce-top'); void sheet.offsetWidth; sheet.classList.add('bounce-top'); }   /* arriving at the top */
-      if(cur+l.clientHeight>=l.scrollHeight-2 && was+l.clientHeight<l.scrollHeight-2){ sheet.classList.remove('bounce-end'); void sheet.offsetWidth; sheet.classList.add('bounce-end'); if(window.skyBalloon) skyBalloon(); }
+      if(cur+l.clientHeight>=l.scrollHeight-2 && was+l.clientHeight<l.scrollHeight-2){ sheet.classList.remove('bounce-end'); void sheet.offsetWidth; sheet.classList.add('bounce-end'); if(window.skyBalloon && balloonHere()) skyBalloon(); }
       if(pull) release();
     },{passive:true});
     l.addEventListener('wheel',function(e){
@@ -590,7 +605,7 @@ function picTick(){
   for(let i=0;i<8;i++){ const g=goal(); bees.push({x:R()*W,y:H*.08+R()*H*.75,h:R()*TAU,sp:1.2+R()*.7,hov:0,wing:0,dark:(R()<.5),gx:g.x,gy:g.y}); }   /* ~40-60 px/s, each on its way somewhere */
   /* butterflies: one at a time, rarely, crossing the width on a slow sine and gone */
   let nextFly=performance.now()+15000+R()*30000;
-  /* the balloon: pale pink, let go at the foot of the last page; rises with a sway on a wavy string */
+  /* the balloon: pale pink, let go at the foot of an entry marked "balloon"; rises with a sway on a wavy string */
   let balloon=null;
   window.skyBalloon=function(){ if(balloon) return; balloon={x:W*.3+R()*W*.4,y:H+50,ph:R()*TAU,sp:1.3+R()*.5,t0:performance.now()}; start(); };
   function drawBalloon(b,t){

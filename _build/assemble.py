@@ -6,7 +6,7 @@ tpl=os.path.join(site,'_build','templates')
 cfg=json.load(open(os.path.join(site,'_config.json')))
 meta=json.load(open(os.path.join(site,'_entries_meta.json')))
 bee=json.load(open(os.path.join(site,'assets/bee/meta.json')))
-KEEP=('id','title','vol','topic','year','month','day','tags','n','mm','pmm','lj','dw')
+KEEP=('id','title','vol','topic','year','month','day','tags','n','mm','pmm','lj','dw','frame','balloon')
 arts=[{k:a.get(k) for k in KEEP if k in a} for a in meta]
 head=open(os.path.join(tpl,'index_head.html'),encoding='utf-8').read()
 scr=open(os.path.join(tpl,'index_script.html'),encoding='utf-8').read()
