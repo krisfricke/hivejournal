@@ -282,6 +282,12 @@ body.hasopen .edge.stack{display:flex}
   filter:drop-shadow(0 10px 30px rgba(0,0,0,.45))}    /* the shadow follows the cut edge, not a rectangle */
 .pframe.framed iframe{background:transparent}         /* the page cuts its own paper back */
 .pframe .pfr{position:absolute;z-index:6;pointer-events:none;user-select:none;max-width:none;
+.pframe .cmtx{position:absolute;left:50%;transform:translateX(-50%);z-index:8;display:flex;gap:7px;
+  align-items:center;font:600 12px/1 'Liberation Serif','Times New Roman',serif;letter-spacing:.08em;white-space:nowrap}
+.pframe .cmtx a{display:flex;align-items:center;gap:5px;text-decoration:none;color:#3a2a10;
+  background:rgba(255,253,245,.93);border:1px solid rgba(58,42,16,.45);border-radius:13px;padding:5px 12px;
+  box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.pframe .cmtx a:hover{background:#fff;color:#000}
   border:0;box-shadow:none;background:none;cursor:default}   /* .cov img would otherwise give it a white rim */
 .rail{width:170px;flex:0 0 170px;padding-top:6px}
 .rail .pn{color:#47637a;font-size:11.5px;letter-spacing:.08em;margin-bottom:7px}

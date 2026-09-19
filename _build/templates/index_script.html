@@ -148,8 +148,16 @@ function pageRow(a,n,li){
   /* skipLast: the web-app page wears no border, so the game can fill the whole sheet */
   const bare=a.frame&&a.frame.skipLast&&n===a.n;
   const fr=bare?'':frameImg(a,mm);
+  /* with a border the page's own comment button would be buried under the ornament (the bottom
+     medallion reaches 21mm in), so the reader draws it instead, above the border */
+  let cmt='';
+  if(fr && (a.lj||a.dw)){
+    const links=(a.lj?'<a href="'+esc(a.lj)+'" target="_blank" rel="noopener">&#x1F4AC; Comment on LiveJournal</a>':'')
+               +(a.dw?'<a href="'+esc(a.dw)+'" target="_blank" rel="noopener">&#x1F4AC; Dreamwidth</a>':'');
+    cmt='<div class="cmtx" style="bottom:'+(5/mm[1]*100).toFixed(2)+'%">'+links+'</div>';
+  }
   return '<div class="pframe htmlpage'+(fr?' framed':'')+'" data-wmm="'+mm[0]+'" data-hmm="'+mm[1]+'" style="aspect-ratio:'+mm[0]+'/'+mm[1]+'">'+
-    '<iframe loading="lazy" title="'+esc(a.title)+' page '+n+'" src="pages/'+a.id+'/'+n+'.html"></iframe>'+fr+'</div><div class="rail">'+railFor(a,n,li)+'</div>';
+    '<iframe loading="lazy" title="'+esc(a.title)+' page '+n+'" src="pages/'+a.id+'/'+n+'.html"></iframe>'+fr+cmt+'</div><div class="rail">'+railFor(a,n,li)+'</div>';
 }
 /* the balloon is let go at the foot of ONE entry, not every entry: "balloon": true in the metadata */
 function balloonHere(){ const li=document.body.classList.contains('inlane')?1:0;

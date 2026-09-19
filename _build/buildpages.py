@@ -355,7 +355,7 @@ def build_page(doc, pno, outdir, n, title, links_out, manual=(), ocr=False):
     dw = ('<a class="o r" href="%s" target="_blank" rel="noopener" tabindex="-1"><img src="../../assets/dw.png" alt="">Dreamwidth</a>' % html.escape(COMMENT['dw'], quote=True)) if COMMENT.get('dw') else '<span></span>'
     comment = ('<div class="cmt" style="top:%.1fpx">%s<button type="button" aria-expanded="false" '
                'onclick="var o=this.parentNode.classList.toggle(\'open\');this.setAttribute(\'aria-expanded\',o);this.parentNode.querySelectorAll(\'a\').forEach(function(a){a.tabIndex=o?0:-1})">'
-               '<span class="ic">&#x1F4AC;</span> Comment</button>%s</div>' % (fy - 7, lj, dw)) if (COMMENT.get('lj') or COMMENT.get('dw')) else ''
+               '<span class="ic">&#x1F4AC;</span> Comment</button>%s</div>' % (fy - 7, lj, dw)) if ((COMMENT.get('lj') or COMMENT.get('dw')) and not FRAME) else ''
     folio = comment + '<div class="folio" aria-hidden="true">' + \
             (('<span class="fl" style="left:%.1fpx;top:%.1fpx">%s</span>' % (MARGIN * SCALE, fy, html.escape(FOLIO_SLUG))) if showL else '') + \
             (('<span class="fr" style="right:%.1fpx;top:%.1fpx">%d</span>' % (MARGIN * SCALE, fy, n)) if showR else '') + '</div>'

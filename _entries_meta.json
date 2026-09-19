@@ -107,7 +107,7 @@
    ],
    [
     210.01,
-    199.6
+    233.47
    ],
    [
     210.0,
@@ -120,6 +120,7 @@
    "clip": 8,
    "skipLast": true
   },
-  "balloon": false
+  "balloon": false,
+  "lj": "https://emo-snal.livejournal.com/457000.html"
  }
 ]

@@ -285,13 +285,17 @@
 "last, after embarking in Antioch and sailing ",
 "the last bit, I arrived at Constantinople in the ",
 "west!",
-"The historical date Fable first chose ",
-"was 762 AD and I’ve kept that as playable but ",
-"I was more interested in and more fully ",
-"fleshed out the era beginning the day before ",
-"Marco Polo sets out from Venice in 1271. ",
-"First and most important was tracing his ",
-"exact route and plugging it in, so you can ",
+"The historical date ",
+"Fable first chose was 762 AD ",
+"and I’ve kept that as playable ",
+"but I was more interested in ",
+"and more fully fleshed out ",
+"the era beginning the day ",
+"before Marco Polo sets out ",
+"from Venice in 1271.  First ",
+"and most important was ",
+"tracing his exact route and ",
+"plugging it in, so you can ",
 "bump into him in the place he should ",
 "historically be at any given time or on the ",
 "road between places, which I’ve found really ",
@@ -330,14 +334,7 @@
 "amid the rubble, it occurred to me that what I ",
 "wanted, the whole point really, is the sense of ",
 "a story.  If you made this journey, at the end ",
-"you’d remember your companions as well as ",
-"the sights you saw.  So I gave as many of the ",
-"characters potential plot arcs as I could think ",
-"of. Arrive in Tabriz with Emmanuele ",
-"Kalergis, the wine merchant from Crete and ",
-"he’ll admire the noted local winemaking. ",
-"The Ragusan beekeeper will note beekeeping ",
-"related sights.  Get the Venetian and Genoese "
+"you’d remember your companions as well as "
 ],
 "paras": [
 {
@@ -355,30 +352,30 @@
 "w": 218.9
 },
 {
-"t": "The historical date Fable first chose was 762 AD and I’ve kept that as playable but I was more interested in and more fully fleshed out the era beginning the day before Marco Polo sets out from Venice in 1271. First and most important was tracing his exact route and plugging it in, so you can bump into him in the place he should historically be at any given time or on the road between places, which I’ve found really fun, and when he rests for a year in Badakhshan about halfway, just before the most arduous crossing of the mountains, now I’m like “same, man, same.”",
+"t": "The historical date Fable first chose was 762 AD and I’ve kept that as playable but I was more interested in and more fully fleshed out the era beginning the day before Marco Polo sets out from Venice in 1271.  First and most important was tracing his exact route and plugging it in, so you can bump into him in the place he should historically be at any given time or on the road between places, which I’ve found really fun, and when he rests for a year in Badakhshan about halfway, just before the most arduous crossing of the mountains, now I’m like “same, man, same.”",
 "size": 12.0,
 "y": 440.5,
 "x": 72.1,
 "w": 218.9
 },
 {
-"t": "But what was really interesting for me is accounts of Marco Polo’s travels usually only deal with himself and maybe the doings of the Great Khan – it was only as I was implementing historical events did I realize the 10th Crusade was in full swing",
+"t": "But what was really interesting for me is accounts of Marco Polo’s travels",
 "size": 12.0,
-"y": 664.5,
+"y": 728.5,
 "x": 72.1,
 "w": 218.8
 },
 {
-"t": "when he was in the Levant, he would have been dodging rival armies in the area and probably met Edward Longshanks, of Braveheart infamy, who was leading the crusade (and you can meet him too 😉 ).  I realized also Osman the founder of the Ottoman dynasty was then the 13 year old heir of a local chief in Anatolia, and would likely be in the Seljuk capital of Konya where players might encounter him, and so you might.  Also, while traveling in the Levant the player may encounter moving armies where they were (generally not great for a caravan) arrive at a city under siege or, worse, be caught within one, all set by history. Avoid that mess by going north of the Caspian Sea and find out why Ibn Battuta complained bitterly about the hardships of that route.",
+"t": "usually only deal with himself and maybe the doings of the Great Khan – it was only as I was implementing historical events did I realize the 10th Crusade was in full swing when he was in the Levant, he would have been dodging rival armies in the area and probably met Edward Longshanks, of Braveheart infamy, who was leading the crusade (and you can meet him too 😉 ).  I realized also Osman the founder of the Ottoman dynasty was then the 13 year old heir of a local chief in Anatolia, and would likely be in the Seljuk capital of Konya where players might encounter him, and so you might.  Also, while traveling in the Levant the player may encounter moving armies where they were (generally not great for a caravan) arrive at a city under siege or, worse, be caught within one, all set by history. Avoid that mess by going north of the Caspian Sea and find out why Ibn Battuta complained bitterly about the hardships of that route.",
 "size": 12.0,
 "y": 72.5,
 "x": 307.6,
 "w": 218.9
 },
 {
-"t": "And finally, I think most interestingly for our purposes here, as I trekked eastward out of Anatolia, past the ruined city of Ani, with its cathedral standing amid the rubble, it occurred to me that what I wanted, the whole point really, is the sense of a story.  If you made this journey, at the end you’d remember your companions as well as the sights you saw.  So I gave as many of the characters potential plot arcs as I could think of. Arrive in Tabriz with Emmanuele Kalergis, the wine merchant from Crete and he’ll admire the noted local winemaking. The Ragusan beekeeper will note beekeeping related sights.  Get the Venetian and Genoese",
+"t": "And finally, I think most interestingly for our purposes here, as I trekked eastward out of Anatolia, past the ruined city of Ani, with its cathedral standing amid the rubble, it occurred to me that what I wanted, the whole point really, is the sense of a story.  If you made this journey, at the end you’d remember your companions as well as",
 "size": 12.0,
-"y": 517.0,
+"y": 634.0,
 "x": 307.6,
 "w": 218.9
 }
@@ -390,6 +387,13 @@
 },
 {
 "lines": [
+"the sights you saw.  So I gave as many of the ",
+"characters potential plot arcs as I could think ",
+"of. Arrive in Tabriz with Emmanuele ",
+"Kalergis, the wine merchant from Crete and ",
+"he’ll admire the noted local winemaking. ",
+"The Ragusan beekeeper will note beekeeping ",
+"related sights.  Get the Venetian and Genoese ",
 "crossbowmen both in your party and watch ",
 "the rivalry.  Some characters don’t know it ",
 "yet but the love of their life awaits them in ",
@@ -450,19 +454,11 @@
 "set under some cherry trees ",
 "resplendent with pinkish-white ",
 "blossoms; I have arrived at my ",
-"destination.",
-"I obsessed about the exact routes. ",
-"Published maps generally just give vague ",
-"swoops of the Silk Road route but a ",
-"surprising number of papers detailing very ",
-"specific routes in given areas came to light in ",
-"obscure hyper specific peer reviewed ",
-"journals, and I set up a least-elevation-change ",
-"routefinding algorithm to plot between "
+"destination."
 ],
 "paras": [
 {
-"t": "crossbowmen both in your party and watch the rivalry.  Some characters don’t know it yet but the love of their life awaits them in some distant place beyond the horizon.  And the slaves too, this was particularly important to me, have hopes and aspirations. You can set them free, and they may or may not ask to join your party as a paid member (if you were nice to them and they are far from home), but then also may leave your party if you take them past their hometown, a place where they can practice their old profession, or something else causes them to want to stay.",
+"t": "the sights you saw.  So I gave as many of the characters potential plot arcs as I could think of. Arrive in Tabriz with Emmanuele Kalergis, the wine merchant from Crete and he’ll admire the noted local winemaking. The Ragusan beekeeper will note beekeeping related sights.  Get the Venetian and Genoese crossbowmen both in your party and watch the rivalry.  Some characters don’t know it yet but the love of their life awaits them in some distant place beyond the horizon.  And the slaves too, this was particularly important to me, have hopes and aspirations. You can set them free, and they may or may not ask to join your party as a paid member (if you were nice to them and they are far from home), but then also may leave your party if you take them past their hometown, a place where they can practice their old profession, or something else causes them to want to stay.",
 "size": 12.0,
 "y": 72.5,
 "x": 72.1,
@@ -471,19 +467,19 @@
 {
 "t": "My Kyrgyzstan article continues from the previous blockquote:",
 "size": 12.0,
-"y": 296.5,
+"y": 408.5,
 "x": 72.1,
 "w": 218.8
 },
 {
-"t": "Once, caravans of snorting camels had stopped here to prepare to cross the mountains, but now it is dusty and post-soviet, full of crumbling monuments and grey apartment blocks. A statue of Lenin still graces a central square, his hand outstretched as if to say “look upon my works!” but you turn your back on him and head toward the mountains, past a prouder, more modern statue of Kyrgyz folk hero Manas astride his horse holding his sword valiantly aloft. Follow the approximate route of the Silk Road for two more hours by car up winding roads surrounded by increasingly large green hills, occasionally waiting for shepherds on horseback to move their",
+"t": "Once, caravans of snorting camels had stopped here to prepare to cross the mountains, but now it is dusty and post-soviet, full of crumbling monuments and grey apartment blocks. A statue of Lenin still graces a central square, his hand outstretched as if to say “look upon my works!” but you turn your back on him and head toward",
 "size": 12.0,
-"y": 333.6,
+"y": 445.6,
 "x": 86.3,
 "w": 190.4
 },
 {
-"t": "sheep off the road, until you come to a village named Kenesh beside the icy Kara Darya river.",
+"t": "the mountains, past a prouder, more modern statue of Kyrgyz folk hero Manas astride his horse holding his sword valiantly aloft. Follow the approximate route of the Silk Road for two more hours by car up winding roads surrounded by increasingly large green hills, occasionally waiting for shepherds on horseback to move their sheep off the road, until you come to a village named Kenesh beside the icy Kara Darya river.",
 "size": 12.0,
 "y": 71.6,
 "x": 321.9,
@@ -492,16 +488,9 @@
 {
 "t": "The river valley seems stark and empty in the cold of early Spring. Other than the village and river, there is nothing in sight but grass and distant herds of sheep or horses. The “Mountains of Heaven,” the Tian Shan, loom at one end, and the Fergana Valley at the other. The village itself consists of a smattering of dusty off-white houses punctuated with cheery red or blue hand-carved wooden scrollwork along the eaves. Each house has its own yard delineated by a rustic fence of rough branches, and each yard contains a kitchen garden, some fruit trees in the very beginnings of blossom, the family horses and maybe a cow or two. Some sheds and barns are actually thatched. The car rolls into one such yard, I walk past a row of strangely large beehives set under some cherry trees resplendent with pinkish-white blossoms; I have arrived at my destination.",
 "size": 12.0,
-"y": 110.3,
+"y": 226.4,
 "x": 321.9,
 "w": 190.4
-},
-{
-"t": "I obsessed about the exact routes. Published maps generally just give vague swoops of the Silk Road route but a surprising number of papers detailing very specific routes in given areas came to light in obscure hyper specific peer reviewed journals, and I set up a least-elevation-change routefinding algorithm to plot between",
-"size": 12.0,
-"y": 439.7,
-"x": 307.6,
-"w": 218.9
 }
 ],
 "mm": [
@@ -511,6 +500,14 @@
 },
 {
 "lines": [
+"I obsessed about the exact routes. ",
+"Published maps generally just give vague ",
+"swoops of the Silk Road route but a ",
+"surprising number of papers detailing very ",
+"specific routes in given areas came to light in ",
+"obscure hyper specific peer reviewed ",
+"journals, and I set up a least-elevation-change ",
+"routefinding algorithm to plot between ",
 "known waypoints.  One thing that amazed ",
 "and delighted me is I discovered the village I ",
 "had stayed in in Kyrgyzstan wasn’t just “on ",
@@ -560,28 +557,28 @@
 ],
 "paras": [
 {
-"t": "known waypoints.  One thing that amazed and delighted me is I discovered the village I had stayed in in Kyrgyzstan wasn’t just “on the Silk Road” in a vague within-50-km sense, it literally went up that valley, probably within a dozen meters of the room in which I slept.",
+"t": "I obsessed about the exact routes. Published maps generally just give vague swoops of the Silk Road route but a surprising number of papers detailing very specific routes in given areas came to light in obscure hyper specific peer reviewed journals, and I set up a least-elevation-change routefinding algorithm to plot between known waypoints.  One thing that amazed and delighted me is I discovered the village I had stayed in in Kyrgyzstan wasn’t just “on the Silk Road” in a vague within-50-km sense, it literally went up that valley, probably within a dozen meters of the room in which I slept.",
 "size": 12.0,
 "y": 72.5,
-"x": 72.1,
-"w": 218.8
-},
-{
-"t": "Among the final touches I added to the game were finally making it all 3d, and the ability to use wagons in places where camels aren’t available (camels are more efficient than wagons it turns out). I mainly wanted wagons as an homage to Oregon Trail and when I opened up the Grand Trunk Road through India finally I had the excuse I’d needed (the humidity kills camels).",
-"size": 12.0,
-"y": 200.5,
 "x": 72.1,
 "w": 218.9
 },
 {
-"t": "For the longest time it was just me and specific known friends I’d talked into playtesting it but at least one mysterious person, naming their character RugOne through RugElevan has played what must be at least dozens of hours of it! I’m dying to",
+"t": "Among the final touches I added to the game were finally making it all 3d, and the ability to use wagons in places where camels aren’t available (camels are more efficient than wagons it turns out). I mainly wanted wagons as an homage to Oregon Trail and when I opened up the Grand Trunk Road through India finally I had the excuse I’d needed (the humidity kills camels).",
 "size": 12.0,
-"y": 360.5,
+"y": 328.5,
+"x": 72.1,
+"w": 218.9
+},
+{
+"t": "For the longest time it was just me and specific known friends I’d talked into",
+"size": 12.0,
+"y": 488.5,
 "x": 72.1,
 "w": 218.8
 },
 {
-"t": "know who they are and from whence they wandered across my game!",
+"t": "playtesting it but at least one mysterious person, naming their character RugOne through RugElevan has played what must be at least dozens of hours of it! I’m dying to know who they are and from whence they wandered across my game!",
 "size": 12.0,
 "y": 72.5,
 "x": 307.6,
@@ -590,35 +587,35 @@
 {
 "t": "In the future, in order, I would like to (1) finish an “amber road” extension where you travel from Scandinavia to Constantinople via inland rivers, which alreay has basic functionality but I haven’t had time to playtest and refine it much at all; (2) make it so you can start in 1266 and instead cross paths with Marco Polo’s father and uncle; (3) make 14th century Ibn Battuta setting; (4) Make an “End of the Silk Road” version where you set out from Lisbon in 1498 at the same time Vasco de Gama is setting out by sea, beat him to India and back.",
 "size": 12.0,
-"y": 120.5,
+"y": 184.5,
 "x": 307.6,
 "w": 218.8
 },
 {
 "t": "But first, I made an LJ Idol themed setting. It autopopulates your party with current season LJ Idol contestants (skills randomized) and the tavern in Samarkand has been renamed the Green Room, this time you’ll have to travel a long way for the sacriligious Green Room party!",
 "size": 12.0,
-"y": 344.5,
+"y": 408.5,
 "x": 307.6,
 "w": 218.9
 },
 {
 "t": "Play below, or play the general game here:",
 "size": 12.0,
-"y": 472.5,
+"y": 568.5,
 "x": 108.1,
 "w": 204.3
 },
 {
 "t": "SILK ROAD!",
 "size": 12.0,
-"y": 488.5,
+"y": 584.5,
 "x": 262.2,
 "w": 70.9
 }
 ],
 "mm": [
 210.01,
-199.6
+233.47
 ]
 }
 ],
@@ -671,10 +668,10 @@
 "page": 3,
 "file": "pic4.jpg",
 "deco": false,
-"x": 307.5,
-"y": 366.2,
-"w": 224.0,
-"h": 126.0,
+"x": 219.3,
+"y": 424.0,
+"w": 340.0,
+"h": 191.2,
 "alt": "The ruined city of Ani: a lone red-stone church with a conical dome standing alone on open grassland, tumbled masonry in the foreground, snow-streaked mountains behind.",
 "hover": "The ruined city of Ani"
 },
