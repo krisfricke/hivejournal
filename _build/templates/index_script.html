@@ -152,9 +152,16 @@ function pageRow(a,n,li){
      medallion reaches 21mm in), so the reader draws it instead, above the border */
   let cmt='';
   if(fr && (a.lj||a.dw)){
-    const links=(a.lj?'<a href="'+esc(a.lj)+'" target="_blank" rel="noopener">&#x1F4AC; Comment on LiveJournal</a>':'')
-               +(a.dw?'<a href="'+esc(a.dw)+'" target="_blank" rel="noopener">&#x1F4AC; Dreamwidth</a>':'');
-    cmt='<div class="cmtx" style="bottom:'+(5/mm[1]*100).toFixed(2)+'%">'+links+'</div>';
+    const lj=a.lj?'<a class="o l" href="'+esc(a.lj)+'" target="_blank" rel="noopener" tabindex="-1">'
+                 +'<img src="assets/lj.png" alt="">LiveJournal</a>':'<span></span>';
+    const dw=a.dw?'<a class="o r" href="'+esc(a.dw)+'" target="_blank" rel="noopener" tabindex="-1">'
+                 +'<img src="assets/dw.png" alt="">Dreamwidth</a>':'<span></span>';
+    cmt='<div class="cmtx" style="bottom:'+(5/mm[1]*100).toFixed(2)+'%">'+lj
+       +'<button type="button" aria-expanded="false" onclick="var o=this.parentNode.classList.toggle(\'open\');'
+       +'this.setAttribute(\'aria-expanded\',o);'
+       +'this.parentNode.querySelectorAll(\'a\').forEach(function(x){x.tabIndex=o?0:-1});'
+       +'event.stopPropagation();">'
+       +'<span class="ic">&#x1F4AC;</span> Comment</button>'+dw+'</div>';
   }
   return '<div class="pframe htmlpage'+(fr?' framed':'')+'" data-wmm="'+mm[0]+'" data-hmm="'+mm[1]+'" style="aspect-ratio:'+mm[0]+'/'+mm[1]+'">'+
     '<iframe loading="lazy" title="'+esc(a.title)+' page '+n+'" src="pages/'+a.id+'/'+n+'.html"></iframe>'+fr+cmt+'</div><div class="rail">'+railFor(a,n,li)+'</div>';
@@ -499,9 +506,27 @@ function picTick(){
    clickable she sits and bats at it, and the paw tip is then the pointer. Pages report the pointer from
    inside their frames the same way they did for the bee. Hover devices only. */
 (function(){
-  if(!matchMedia('(hover:hover)').matches) return;
+  /* Phones lie about this. Android Chrome, a paired stylus and any "desktop site" tab all report
+     hover:hover, and the cat then sits in the middle of a screen that has no pointer to follow.
+     So: require a FINE pointer as well, and kill her outright the first time a finger touches. */
+  if(!matchMedia('(hover:hover) and (pointer:fine)').matches) return;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const cat=document.getElementById('cat'); if(!cat) return;
+  /* The decisive test is not what the device claims but what it does. Every finger contact -
+     tap, swipe, scroll - fires a touch/pointer event that says so, and a mouse says so too, so
+     a laptop with a touchscreen gets the cat back the moment the mouse moves. */
+  let dead=false, exiting=false;
+  /* she does not blink out of existence: she walks off to the left and is gone */
+  function suppress(){ if(dead||exiting) return;
+    if(!cat.classList.contains('on')){ dead=true; document.body.classList.remove('bee-on'); return; }
+    exiting=true; overLink=false; document.body.classList.remove('bee-on'); }
+  function allow(){ if(!dead&&!exiting) return; dead=false; exiting=false; document.body.classList.add('bee-on'); }
+  addEventListener('touchstart',suppress,{passive:true,capture:true});
+  addEventListener('touchmove',suppress,{passive:true,capture:true});
+  if(window.PointerEvent){
+    addEventListener('pointerdown',e=>{ if(e.pointerType==='touch') suppress(); else allow(); },{passive:true,capture:true});
+    addEventListener('pointermove',e=>{ if(e.pointerType==='touch') suppress(); else allow(); },{passive:true,capture:true});
+  }
   document.body.classList.add('bee-on');
   /* ---- dials ---- */
   const FOLLOW=0.18, SIT_AFTER=2000, VERTICAL=1.35, TURN_HOLD=140, STEP=0.09, BAT_SWING=0.014, BAT_ON=1300, BAT_OFF=650, K=50/60;
@@ -513,7 +538,7 @@ function picTick(){
   /* hand-off between the readers on this site: arrive where the other one's cursor left off */
   const HAND='kf_bee';
   try{ const h=JSON.parse(localStorage.getItem(HAND)||'null');
-    if(h && Date.now()-h.t<8000 && isFinite(h.x) && isFinite(h.y)){ tx=x=h.x; ty=y=h.y; started=true; cat.classList.add('on'); }
+    if(h && Date.now()-h.t<8000 && isFinite(h.x) && isFinite(h.y)){ tx=x=h.x; ty=y=h.y; started=true; }   /* position only: she stays invisible until a pointer actually moves */
     localStorage.removeItem(HAND); }catch(e){}
   window.addEventListener('pagehide',function(){ try{ localStorage.setItem(HAND,JSON.stringify({x:x,y:y,a:0,t:Date.now()})); }catch(e){} });
   /* what counts as clickable: everything the stylesheet gives a pointer cursor, plus the obvious */
@@ -528,12 +553,12 @@ function picTick(){
     for(const q of sel){ if(NOFOLD.indexOf(q.trim())>=0) continue; try{ document.querySelector(q); CLICK+=','+q; }catch(e){} }
   })();
   function overClick(){ if(!document.elementFromPoint) return false; const el=document.elementFromPoint(tx,ty); return !!(el && el.closest && el.closest(CLICK)); }
-  function aim(nx,ny,isLink){ tx=nx; ty=ny; if(!started){ x=tx; y=ty; started=true; } cat.classList.add('on');
+  function aim(nx,ny,isLink){ if(dead||exiting) return; tx=nx; ty=ny; if(!started){ x=tx; y=ty; started=true; } cat.classList.add('on');
     overLink = (isLink===undefined) ? overClick() : !!isLink; }
   function hide(){ cat.classList.remove('on'); }
   document.addEventListener('mousemove',e=>aim(e.clientX,e.clientY),{passive:true});
   document.documentElement.addEventListener('mouseleave',hide);
-  document.documentElement.addEventListener('mouseenter',()=>cat.classList.add('on'));
+  document.documentElement.addEventListener('mouseenter',()=>{ if(!dead && started) cat.classList.add('on'); });
   window.addEventListener('message',function(e){
     const m=e.data; if(!m||!m.abj) return;
     if(m.abj==='hello' && e.source){ try{ e.source.postMessage({abj:'bee',on:true},'*'); }catch(err){} return; }
@@ -549,6 +574,10 @@ function picTick(){
   function frame(t){
     requestAnimationFrame(frame);
     const dt=Math.min(3,(t-lastT)/16.7); lastT=t;
+    /* leaving: hold a target a fixed stride to the left, so she keeps an even walking pace
+       (chasing the far edge directly would start at a sprint and trail off to a crawl) */
+    if(exiting){ tx=x-60; ty=y; lastMove=t;
+      if(x < -80){ exiting=false; dead=true; cat.classList.remove('on'); return; } }
     const dx=tx-x, dy=ty-y, dist=Math.hypot(dx,dy), step=Math.min(dist,dist*FOLLOW*dt);
     let mx=0,my=0; if(dist>0.5){ mx=dx/dist*step; my=dy/dist*step; x+=mx; y+=my; }
     const speed=step/dt, moving=speed>0.35;

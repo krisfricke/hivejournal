@@ -283,12 +283,23 @@ body.hasopen .edge.stack{display:flex}
 .pframe.framed iframe{background:transparent}         /* the page cuts its own paper back */
 .pframe .pfr{position:absolute;z-index:6;pointer-events:none;user-select:none;max-width:none;
   border:0;box-shadow:none;background:none;cursor:default}   /* .cov img would otherwise give it a white rim */
-.pframe .cmtx{position:absolute;left:50%;transform:translateX(-50%);z-index:8;display:flex;gap:7px;
-  align-items:center;font:600 12px/1 'Liberation Serif','Times New Roman',serif;letter-spacing:.08em;white-space:nowrap;line-height:1}
-.pframe .cmtx a{display:flex;align-items:center;gap:5px;text-decoration:none;color:#3a2a10;
-  background:rgba(255,253,245,.93);border:1px solid rgba(58,42,16,.5);border-radius:13px;padding:5px 12px;
-  box-shadow:0 2px 6px rgba(0,0,0,.35)}
-.pframe .cmtx a:hover{background:#fff;color:#000}
+.pframe .cmtx{position:absolute;left:50%;width:360px;margin-left:-180px;z-index:8;display:grid;
+  grid-template-columns:1fr auto 1fr;align-items:center;column-gap:8px;
+  font:600 12px/1 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+.pframe .cmtx button{position:relative;z-index:2;background:rgba(17,17,17,.86);color:#f2ead6;border:none;
+  border-radius:14px;padding:6px 13px 6px 10px;cursor:pointer;font:inherit;letter-spacing:.03em;
+  box-shadow:0 3px 10px rgba(0,0,0,.28);display:inline-flex;align-items:center;gap:6px}
+.pframe .cmtx button:hover{background:#FBAA19;color:#111}
+.pframe .cmtx .ic{font-size:13px}
+.pframe .cmtx .o{display:inline-flex;align-items:center;gap:6px;background:#fff;color:#1a1a1a;
+  border:1px solid #FBAA19;border-radius:14px;padding:5px 12px 5px 7px;text-decoration:none;
+  box-shadow:0 3px 10px rgba(0,0,0,.22);white-space:nowrap;
+  opacity:0;pointer-events:none;transition:transform .28s cubic-bezier(.2,.8,.3,1.1),opacity .2s}
+.pframe .cmtx .o.l{justify-self:end;transform:translateX(70px)}
+.pframe .cmtx .o.r{justify-self:start;transform:translateX(-70px)}
+.pframe .cmtx.open .o{opacity:1;pointer-events:auto;transform:none}
+.pframe .cmtx .o:hover{background:#FBAA19;text-decoration:none}
+.pframe .cmtx .o img{width:16px;height:16px;display:block}
 .rail{width:170px;flex:0 0 170px;padding-top:6px}
 .rail .pn{color:#47637a;font-size:11.5px;letter-spacing:.08em;margin-bottom:7px}
 .rail .ti{color:var(--ink);font-size:12.5px;font-weight:600;line-height:1.25;margin-bottom:4px}
@@ -496,7 +507,7 @@ const HOME_LABEL='emo_snal on LiveJournal';
 const UP_URL='https://therealljidol.dreamwidth.org/1224892.html';             /* north of the first entry: this week's topic post (or the poll) */
 const UP_LABEL='This week’s topic';
 const DW_TAG='https://aggienaut.dreamwidth.org/tag/';        /* + the tag: every entry with that tag, on Dreamwidth */
-const ARTS=[{"id":"s12-t0","title":"Twenty Years of LJ Idol","vol":12,"topic":0,"year":2026,"month":9,"day":7,"tags":["introductions","lj idol"],"n":10,"mm":[210.02,297.01],"pmm":[[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,205.07]],"lj":"https://emo-snal.livejournal.com/455998.html","dw":"https://aggienaut.dreamwidth.org/847214.html","balloon":true},{"id":"s12-t1","title":"Journeys in Time","vol":12,"topic":1,"year":2026,"month":9,"day":16,"tags":["lj idol"],"n":6,"mm":[210.01,297.0],"pmm":[[210.01,297.0],[210.01,297.0],[210.01,297.0],[210.01,297.0],[210.01,233.47],[210.0,297.0]],"lj":"https://emo-snal.livejournal.com/457000.html","frame":{"img":"assets/frame-silkroad-v3.png","bleed":0,"clip":8,"skipLast":true},"balloon":false}];
+const ARTS=[{"id":"s12-t0","title":"Twenty Years of LJ Idol","vol":12,"topic":0,"year":2026,"month":9,"day":7,"tags":["introductions","lj idol"],"n":10,"mm":[210.02,297.01],"pmm":[[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,297.01],[210.02,205.07]],"lj":"https://emo-snal.livejournal.com/455998.html","dw":"https://aggienaut.dreamwidth.org/847214.html","balloon":true},{"id":"s12-t1","title":"Journeys in Time","vol":12,"topic":1,"year":2026,"month":9,"day":16,"tags":["lj idol"],"n":6,"mm":[210.01,297.0],"pmm":[[210.01,297.0],[210.01,297.0],[210.01,297.0],[210.01,297.0],[210.01,233.47],[210.0,297.0]],"lj":"https://emo-snal.livejournal.com/457000.html","dw":"https://aggienaut.dreamwidth.org/848178.html","frame":{"img":"assets/frame-silkroad-v3.png","bleed":0,"clip":8,"skipLast":true},"balloon":false}];
 const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 /* ---------- helpers ---------- */
@@ -642,9 +653,16 @@ function pageRow(a,n,li){
      medallion reaches 21mm in), so the reader draws it instead, above the border */
   let cmt='';
   if(fr && (a.lj||a.dw)){
-    const links=(a.lj?'<a href="'+esc(a.lj)+'" target="_blank" rel="noopener">&#x1F4AC; Comment on LiveJournal</a>':'')
-               +(a.dw?'<a href="'+esc(a.dw)+'" target="_blank" rel="noopener">&#x1F4AC; Dreamwidth</a>':'');
-    cmt='<div class="cmtx" style="bottom:'+(5/mm[1]*100).toFixed(2)+'%">'+links+'</div>';
+    const lj=a.lj?'<a class="o l" href="'+esc(a.lj)+'" target="_blank" rel="noopener" tabindex="-1">'
+                 +'<img src="assets/lj.png" alt="">LiveJournal</a>':'<span></span>';
+    const dw=a.dw?'<a class="o r" href="'+esc(a.dw)+'" target="_blank" rel="noopener" tabindex="-1">'
+                 +'<img src="assets/dw.png" alt="">Dreamwidth</a>':'<span></span>';
+    cmt='<div class="cmtx" style="bottom:'+(5/mm[1]*100).toFixed(2)+'%">'+lj
+       +'<button type="button" aria-expanded="false" onclick="var o=this.parentNode.classList.toggle(\'open\');'
+       +'this.setAttribute(\'aria-expanded\',o);'
+       +'this.parentNode.querySelectorAll(\'a\').forEach(function(x){x.tabIndex=o?0:-1});'
+       +'event.stopPropagation();">'
+       +'<span class="ic">&#x1F4AC;</span> Comment</button>'+dw+'</div>';
   }
   return '<div class="pframe htmlpage'+(fr?' framed':'')+'" data-wmm="'+mm[0]+'" data-hmm="'+mm[1]+'" style="aspect-ratio:'+mm[0]+'/'+mm[1]+'">'+
     '<iframe loading="lazy" title="'+esc(a.title)+' page '+n+'" src="pages/'+a.id+'/'+n+'.html"></iframe>'+fr+cmt+'</div><div class="rail">'+railFor(a,n,li)+'</div>';
@@ -989,9 +1007,27 @@ function picTick(){
    clickable she sits and bats at it, and the paw tip is then the pointer. Pages report the pointer from
    inside their frames the same way they did for the bee. Hover devices only. */
 (function(){
-  if(!matchMedia('(hover:hover)').matches) return;
+  /* Phones lie about this. Android Chrome, a paired stylus and any "desktop site" tab all report
+     hover:hover, and the cat then sits in the middle of a screen that has no pointer to follow.
+     So: require a FINE pointer as well, and kill her outright the first time a finger touches. */
+  if(!matchMedia('(hover:hover) and (pointer:fine)').matches) return;
   if(matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   const cat=document.getElementById('cat'); if(!cat) return;
+  /* The decisive test is not what the device claims but what it does. Every finger contact -
+     tap, swipe, scroll - fires a touch/pointer event that says so, and a mouse says so too, so
+     a laptop with a touchscreen gets the cat back the moment the mouse moves. */
+  let dead=false, exiting=false;
+  /* she does not blink out of existence: she walks off to the left and is gone */
+  function suppress(){ if(dead||exiting) return;
+    if(!cat.classList.contains('on')){ dead=true; document.body.classList.remove('bee-on'); return; }
+    exiting=true; overLink=false; document.body.classList.remove('bee-on'); }
+  function allow(){ if(!dead&&!exiting) return; dead=false; exiting=false; document.body.classList.add('bee-on'); }
+  addEventListener('touchstart',suppress,{passive:true,capture:true});
+  addEventListener('touchmove',suppress,{passive:true,capture:true});
+  if(window.PointerEvent){
+    addEventListener('pointerdown',e=>{ if(e.pointerType==='touch') suppress(); else allow(); },{passive:true,capture:true});
+    addEventListener('pointermove',e=>{ if(e.pointerType==='touch') suppress(); else allow(); },{passive:true,capture:true});
+  }
   document.body.classList.add('bee-on');
   /* ---- dials ---- */
   const FOLLOW=0.18, SIT_AFTER=2000, VERTICAL=1.35, TURN_HOLD=140, STEP=0.09, BAT_SWING=0.014, BAT_ON=1300, BAT_OFF=650, K=50/60;
@@ -1003,7 +1039,7 @@ function picTick(){
   /* hand-off between the readers on this site: arrive where the other one's cursor left off */
   const HAND='kf_bee';
   try{ const h=JSON.parse(localStorage.getItem(HAND)||'null');
-    if(h && Date.now()-h.t<8000 && isFinite(h.x) && isFinite(h.y)){ tx=x=h.x; ty=y=h.y; started=true; cat.classList.add('on'); }
+    if(h && Date.now()-h.t<8000 && isFinite(h.x) && isFinite(h.y)){ tx=x=h.x; ty=y=h.y; started=true; }   /* position only: she stays invisible until a pointer actually moves */
     localStorage.removeItem(HAND); }catch(e){}
   window.addEventListener('pagehide',function(){ try{ localStorage.setItem(HAND,JSON.stringify({x:x,y:y,a:0,t:Date.now()})); }catch(e){} });
   /* what counts as clickable: everything the stylesheet gives a pointer cursor, plus the obvious */
@@ -1018,12 +1054,12 @@ function picTick(){
     for(const q of sel){ if(NOFOLD.indexOf(q.trim())>=0) continue; try{ document.querySelector(q); CLICK+=','+q; }catch(e){} }
   })();
   function overClick(){ if(!document.elementFromPoint) return false; const el=document.elementFromPoint(tx,ty); return !!(el && el.closest && el.closest(CLICK)); }
-  function aim(nx,ny,isLink){ tx=nx; ty=ny; if(!started){ x=tx; y=ty; started=true; } cat.classList.add('on');
+  function aim(nx,ny,isLink){ if(dead||exiting) return; tx=nx; ty=ny; if(!started){ x=tx; y=ty; started=true; } cat.classList.add('on');
     overLink = (isLink===undefined) ? overClick() : !!isLink; }
   function hide(){ cat.classList.remove('on'); }
   document.addEventListener('mousemove',e=>aim(e.clientX,e.clientY),{passive:true});
   document.documentElement.addEventListener('mouseleave',hide);
-  document.documentElement.addEventListener('mouseenter',()=>cat.classList.add('on'));
+  document.documentElement.addEventListener('mouseenter',()=>{ if(!dead && started) cat.classList.add('on'); });
   window.addEventListener('message',function(e){
     const m=e.data; if(!m||!m.abj) return;
     if(m.abj==='hello' && e.source){ try{ e.source.postMessage({abj:'bee',on:true},'*'); }catch(err){} return; }
@@ -1039,6 +1075,10 @@ function picTick(){
   function frame(t){
     requestAnimationFrame(frame);
     const dt=Math.min(3,(t-lastT)/16.7); lastT=t;
+    /* leaving: hold a target a fixed stride to the left, so she keeps an even walking pace
+       (chasing the far edge directly would start at a sprint and trail off to a crawl) */
+    if(exiting){ tx=x-60; ty=y; lastMove=t;
+      if(x < -80){ exiting=false; dead=true; cat.classList.remove('on'); return; } }
     const dx=tx-x, dy=ty-y, dist=Math.hypot(dx,dy), step=Math.min(dist,dist*FOLLOW*dt);
     let mx=0,my=0; if(dist>0.5){ mx=dx/dist*step; my=dy/dist*step; x+=mx; y+=my; }
     const speed=step/dt, moving=speed>0.35;
